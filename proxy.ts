@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Get auth user from cookie or session
@@ -8,8 +8,8 @@ export function middleware(request: NextRequest) {
   // In a real app, you'd check a secure session/JWT token from cookies
 
   // Admin routes - these will be protected on the client side since we can't access
-  // localStorage in middleware. The ProtectedRoute component handles this.
-  // Middleware for admin routes would need backend auth tokens.
+  // localStorage in proxy. The ProtectedRoute component handles this.
+  // Proxy for admin routes would need backend auth tokens.
 
   // For now, allow all routes to load. Client-side ProtectedRoute component
   // will handle redirects for protected pages.
