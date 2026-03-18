@@ -69,7 +69,7 @@ export default function SignInPage() {
           <div className="p-4 bg-muted rounded-lg space-y-2">
             <p className="text-sm font-medium text-foreground">Demo Credentials:</p>
             <p className="text-xs text-foreground/70">
-              <strong>Admin:</strong> admin@purepath.com / admin123
+              <strong>Admin:</strong> Sprayandsniff@gmail.com / admin123
             </p>
             <p className="text-xs text-foreground/70">
               <strong>User:</strong> user@purepath.com / user123

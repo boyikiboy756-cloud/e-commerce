@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
     setError('')
 
     // Only allow admin credentials
-    if (email !== 'admin@purepath.com') {
+    if (email !== 'Sprayandsniff@gmail.com') {
       setError('Only admin accounts can access this page')
       return
     }
@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
         {/* Demo Credentials */}
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-sm font-medium text-foreground mb-2">Admin Credentials:</p>
-          <p className="text-xs text-foreground/70 font-mono">admin@purepath.com</p>
+          <p className="text-xs text-foreground/70 font-mono">Sprayandsniff@gmail.com</p>
           <p className="text-xs text-foreground/70 font-mono">admin123</p>
         </div>
 
@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="admin@pureimage.com"
+              placeholder="Sprayandsniff@gmail.com"
               className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
@@ -119,8 +119,8 @@ export default function AdminLoginPage() {
         {/* Demo Credentials */}
         <div className="bg-muted rounded-lg p-4 space-y-2">
           <p className="text-xs font-medium text-foreground/60 uppercase">Demo Credentials</p>
-          <p className="text-sm text-foreground/70">Email: admin@pureimage.com</p>
-          <p className="text-sm text-foreground/70">Password: demo1234</p>
+          <p className="text-sm text-foreground/70">Email: Sprayandsniff@gmail.com</p>
+          <p className="text-sm text-foreground/70">Password: admin123</p>
         </div>
       </div>
     </div>

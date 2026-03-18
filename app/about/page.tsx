@@ -14,6 +14,8 @@ export default function AboutPage() {
           src="/hero-banner.jpg"
           alt="Pure Path story"
           fill
+          loading="eager"
+          sizes="100vw"
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/40" />
@@ -36,7 +38,7 @@ export default function AboutPage() {
           </div>
 
           <p className="text-lg text-foreground/70 leading-relaxed">
-            Founded in 2010, Pure Path emerged from a simple belief: fragrance is not just a product—it's an experience, a memory, a part of your identity. Every scent we create tells a story of craftsmanship, passion, and dedication to excellence.
+            Founded in 2026, Pure Path emerged from a simple belief: fragrance is not just a product—it's an experience, a memory, a part of your identity. Every scent we create tells a story of craftsmanship, passion, and dedication to excellence.
           </p>
 
           <p className="text-lg text-foreground/70 leading-relaxed">

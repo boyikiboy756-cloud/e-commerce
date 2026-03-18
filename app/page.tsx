@@ -19,7 +19,8 @@ export default function Home() {
           src="/hero-banner.jpg"
           alt="Luxury perfume collection"
           fill
-          priority
+          preload
+          sizes="100vw"
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/30" />
@@ -78,12 +79,13 @@ export default function Home() {
       <section className="bg-muted py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="relative aspect-square rounded-lg overflow-hidden bg-background">
-            <Image
-              src="/hero-banner.jpg"
-              alt="Brand story"
-              fill
-              className="object-cover"
-            />
+          <Image
+            src="/hero-banner.jpg"
+            alt="Brand story"
+            fill
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            className="object-cover"
+          />
           </div>
           
           <div className="space-y-6">
@@ -148,6 +150,7 @@ export default function Home() {
             <input
               type="email"
               placeholder="Enter your email"
+              suppressHydrationWarning
               className="flex-1 px-4 py-3 bg-background text-foreground placeholder:text-foreground/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
               required
             />
@@ -208,9 +211,27 @@ export default function Home() {
               © 2024 Pure Path. All rights reserved.
             </p>
             <div className="flex gap-6">
-              <button className="text-sm text-foreground/60 hover:text-accent">Privacy</button>
-              <button className="text-sm text-foreground/60 hover:text-accent">Terms</button>
-              <button className="text-sm text-foreground/60 hover:text-accent">Cookies</button>
+              <button
+                type="button"
+                suppressHydrationWarning
+                className="text-sm text-foreground/60 hover:text-accent"
+              >
+                Privacy
+              </button>
+              <button
+                type="button"
+                suppressHydrationWarning
+                className="text-sm text-foreground/60 hover:text-accent"
+              >
+                Terms
+              </button>
+              <button
+                type="button"
+                suppressHydrationWarning
+                className="text-sm text-foreground/60 hover:text-accent"
+              >
+                Cookies
+              </button>
             </div>
           </div>
         </div>
