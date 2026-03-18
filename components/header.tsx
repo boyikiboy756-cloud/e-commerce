@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Search, ShoppingBag, Heart, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AuthMenu } from '@/components/auth-menu'
 import { useState } from 'react'
 
 export function Header() {
@@ -73,13 +74,9 @@ export function Header() {
               <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
             </Link>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden sm:inline-flex ml-4"
-            >
-              <Link href="/auth/signin">Sign In</Link>
-            </Button>
+            <div className="hidden sm:inline-flex ml-4">
+              <AuthMenu />
+            </div>
 
             {/* Mobile Menu Button */}
             <button

@@ -1,11 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
+import { useAuth } from '@/lib/auth-context'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function SignUpPage() {
+  const router = useRouter()
+  const { signup, isAuthenticated, isLoading: authLoading } = useAuth()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -14,6 +19,14 @@ export default function SignUpPage() {
     confirmPassword: '',
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      router.push('/shop')
+    }
+  }, [isAuthenticated, authLoading, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -22,16 +35,28 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match')
+      setError('Passwords do not match')
       return
     }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
     setLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim()
+      await signup(formData.email, formData.password, fullName)
+      // Redirect will happen via useEffect
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signup failed')
+    } finally {
       setLoading(false)
-      // Handle signup
-    }, 1000)
+    }
   }
 
   return (
@@ -49,6 +74,13 @@ export default function SignUpPage() {
               Join Pure Path and discover your perfect scent
             </p>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -154,10 +186,11 @@ export default function SignUpPage() {
 
             <Button
               type="submit"
-              disabled={loading}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+              disabled={loading || authLoading}
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground flex items-center justify-center gap-2"
               size="lg"
             >
+              {loading && <Spinner className="w-4 h-4" />}
               {loading ? 'Creating account...' : 'Create Account'}
             </Button>
           </form>

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { BarChart3, Package, ShoppingCart, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ProtectedRoute } from '@/components/protected-route'
 
 const stats = [
   {
@@ -47,7 +48,8 @@ const topProducts = [
 
 export default function AdminDashboard() {
   return (
-    <div className="min-h-screen bg-background">
+    <ProtectedRoute requiredRole="ADMIN">
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -188,5 +190,6 @@ export default function AdminDashboard() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

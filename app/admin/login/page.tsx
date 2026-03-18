@@ -1,21 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/auth-context'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function AdminLoginPage() {
+  const router = useRouter()
+  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      if (isAdmin) {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/')
+      }
+    }
+  }, [isAuthenticated, isAdmin, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+
+    // Only allow admin credentials
+    if (email !== 'admin@purepath.com') {
+      setError('Only admin accounts can access this page')
+      return
+    }
+
     setLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await login(email, password)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
       setLoading(false)
-      // Handle login
-    }, 1000)
+    }
   }
 
   return (
@@ -29,6 +57,20 @@ export default function AdminLoginPage() {
           <p className="text-foreground/60">
             Sign in to manage your store
           </p>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        {/* Demo Credentials */}
+        <div className="p-4 bg-muted rounded-lg">
+          <p className="text-sm font-medium text-foreground mb-2">Admin Credentials:</p>
+          <p className="text-xs text-foreground/70 font-mono">admin@purepath.com</p>
+          <p className="text-xs text-foreground/70 font-mono">admin123</p>
         </div>
 
         {/* Form */}
@@ -65,11 +107,12 @@ export default function AdminLoginPage() {
 
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+            disabled={loading || authLoading}
+            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground flex items-center justify-center gap-2"
             size="lg"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading && <Spinner className="w-4 h-4" />}
+            {loading ? 'Signing in...' : 'Sign In to Admin'}
           </Button>
         </form>
 
