@@ -11,6 +11,7 @@ const STEPS = ['Shipping', 'Payment', 'Review']
 export default function CheckoutPage() {
   const [step, setStep] = useState(0)
   const [orderPlaced, setOrderPlaced] = useState(false)
+  const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     // Shipping
     firstName: '',
@@ -43,13 +44,14 @@ export default function CheckoutPage() {
     if (step < STEPS.length - 1) {
       setStep(step + 1)
     } else {
+      setOrderNumber(`PUR-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`)
       setOrderPlaced(true)
     }
   }
 
   const subtotal = 245
   const tax = 24.50
-  const shipping = 0
+  const shipping: number = 0
   const total = subtotal + tax + shipping
 
   if (orderPlaced) {
@@ -68,7 +70,7 @@ export default function CheckoutPage() {
               Thank you for your purchase! Your order has been confirmed and will be shipped shortly.
             </p>
             <p className="text-sm text-foreground/50">
-              Order #PUR-2024-{Math.floor(Math.random() * 10000)}
+              Order #{orderNumber}
             </p>
             <Button size="lg" asChild>
               <Link href="/shop">Continue Shopping</Link>

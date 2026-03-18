@@ -25,9 +25,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Demo credentials
 const DEMO_USERS = {
-  'admin@purepath.com': {
+  'Sprayandsniff@gmail.com': {
     id: 'admin-1',
-    email: 'admin@purepath.com',
+    email: 'Sprayandsniff@gmail.com',
     name: 'Admin User',
     password: 'admin123',
     role: 'ADMIN' as UserRole,
