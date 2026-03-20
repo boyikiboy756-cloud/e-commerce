@@ -1,4 +1,4 @@
-# Pure Path - Luxury Fragrance eCommerce Platform
+# SPRAY & SNIFF - Luxury Fragrance eCommerce Platform
 
 A complete luxury fragrance eCommerce platform built with Next.js, featuring both customer-facing and admin-facing experiences.
 
@@ -158,7 +158,7 @@ Edit `lib/products.ts` to add more fragrances:
 {
   id: 'unique-id',
   name: 'Fragrance Name',
-  brand: 'Pure Path',
+  brand: 'SPRAY & SNIFF',
   description: 'Description',
   price: 185,
   // ... other properties

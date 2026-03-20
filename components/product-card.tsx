@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatPHP } from '@/lib/currency'
 import type { Product } from '@/lib/products'
 
 interface ProductCardProps {
@@ -93,7 +94,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* Price */}
           <div className="flex items-baseline gap-2 pt-3">
             <span className="font-serif text-xl text-foreground">
-              ${product.price}
+              {formatPHP(product.price)}
             </span>
             <span className="text-xs text-muted-foreground">from</span>
           </div>

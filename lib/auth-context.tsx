@@ -1,6 +1,13 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  DEMO_USER_EMAIL,
+  DEMO_USER_PASSWORD,
+  SITE_NAME,
+} from '@/lib/site'
 
 export type UserRole = 'ADMIN' | 'USER'
 
@@ -25,18 +32,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Demo credentials
 const DEMO_USERS = {
-  'Sprayandsniff@gmail.com': {
+  [ADMIN_EMAIL]: {
     id: 'admin-1',
-    email: 'Sprayandsniff@gmail.com',
-    name: 'Admin User',
-    password: 'admin123',
+    email: ADMIN_EMAIL,
+    name: `${SITE_NAME} Admin`,
+    password: ADMIN_PASSWORD,
     role: 'ADMIN' as UserRole,
   },
-  'user@purepath.com': {
+  [DEMO_USER_EMAIL]: {
     id: 'user-1',
-    email: 'user@purepath.com',
+    email: DEMO_USER_EMAIL,
     name: 'Demo User',
-    password: 'user123',
+    password: DEMO_USER_PASSWORD,
     role: 'USER' as UserRole,
   },
 }
@@ -64,7 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 500))
 
-      const demoUser = DEMO_USERS[email as keyof typeof DEMO_USERS]
+      const normalizedEmail = email.trim().toLowerCase()
+      const demoUser = DEMO_USERS[normalizedEmail as keyof typeof DEMO_USERS]
 
       if (!demoUser || demoUser.password !== password) {
         throw new Error('Invalid email or password')

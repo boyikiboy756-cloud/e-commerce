@@ -1,4 +1,5 @@
 import { Header } from '@/components/header'
+import { ADMIN_EMAIL, SITE_NAME } from '@/lib/site'
 
 const faqs = [
   {
@@ -19,7 +20,7 @@ const faqs = [
   },
   {
     question: 'Are your fragrances cruelty-free?',
-    answer: 'Yes, all Pure Path fragrances are cruelty-free and made with ethically sourced ingredients.',
+    answer: `Yes, all ${SITE_NAME} fragrances are cruelty-free and made with ethically sourced ingredients.`,
   },
   {
     question: 'How should I store my fragrance?',
@@ -63,9 +64,12 @@ export default function FAQPage() {
           <p className="text-foreground/70 mb-6">
             Our customer support team is here to help
           </p>
-          <button className="px-6 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-medium">
-            Contact Us
-          </button>
+          <a
+            href={`mailto:${ADMIN_EMAIL}`}
+            className="inline-flex px-6 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors font-medium"
+          >
+            Email {SITE_NAME}
+          </a>
         </div>
       </div>
     </div>

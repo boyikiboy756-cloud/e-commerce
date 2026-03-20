@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { useAuth } from '@/lib/auth-context'
 import { Spinner } from '@/components/ui/spinner'
+import { SITE_NAME } from '@/lib/site'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -71,7 +72,7 @@ export default function SignUpPage() {
               Create Account
             </h1>
             <p className="text-foreground/60">
-              Join Pure Path and discover your perfect scent
+              Join {SITE_NAME} and discover your perfect scent
             </p>
           </div>
 

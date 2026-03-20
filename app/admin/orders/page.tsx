@@ -4,16 +4,17 @@ import Link from 'next/link'
 import { Eye, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
+import { formatPHP } from '@/lib/currency'
 
 const orders = [
-  { id: '#OR-001', customer: 'John Smith', date: '2024-03-15', amount: '$245', status: 'Shipped' },
-  { id: '#OR-002', customer: 'Emma Wilson', date: '2024-03-14', amount: '$385', status: 'Processing' },
-  { id: '#OR-003', customer: 'Michael Brown', date: '2024-03-14', amount: '$165', status: 'Pending' },
-  { id: '#OR-004', customer: 'Sarah Davis', date: '2024-03-13', amount: '$215', status: 'Delivered' },
-  { id: '#OR-005', customer: 'James Johnson', date: '2024-03-13', amount: '$325', status: 'Shipped' },
-  { id: '#OR-006', customer: 'Lisa Anderson', date: '2024-03-12', amount: '$445', status: 'Delivered' },
-  { id: '#OR-007', customer: 'Robert Taylor', date: '2024-03-12', amount: '$175', status: 'Processing' },
-  { id: '#OR-008', customer: 'Jennifer White', date: '2024-03-11', amount: '$295', status: 'Delivered' },
+  { id: '#OR-001', customer: 'John Smith', date: '2024-03-15', amount: 245, status: 'Shipped' },
+  { id: '#OR-002', customer: 'Emma Wilson', date: '2024-03-14', amount: 385, status: 'Processing' },
+  { id: '#OR-003', customer: 'Michael Brown', date: '2024-03-14', amount: 165, status: 'Pending' },
+  { id: '#OR-004', customer: 'Sarah Davis', date: '2024-03-13', amount: 215, status: 'Delivered' },
+  { id: '#OR-005', customer: 'James Johnson', date: '2024-03-13', amount: 325, status: 'Shipped' },
+  { id: '#OR-006', customer: 'Lisa Anderson', date: '2024-03-12', amount: 445, status: 'Delivered' },
+  { id: '#OR-007', customer: 'Robert Taylor', date: '2024-03-12', amount: 175, status: 'Processing' },
+  { id: '#OR-008', customer: 'Jennifer White', date: '2024-03-11', amount: 295, status: 'Delivered' },
 ]
 
 const statusColors: Record<string, string> = {
@@ -83,7 +84,7 @@ export default function AdminOrdersPage() {
                     </td>
                     <td className="py-4 px-6 text-foreground">{order.customer}</td>
                     <td className="py-4 px-6 text-foreground/60">{order.date}</td>
-                    <td className="py-4 px-6 font-medium text-foreground">{order.amount}</td>
+                    <td className="py-4 px-6 font-medium text-foreground">{formatPHP(order.amount)}</td>
                     <td className="py-4 px-6">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
                         {order.status}

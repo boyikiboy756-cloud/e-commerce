@@ -5,46 +5,51 @@ import { BarChart3, Package, ShoppingCart, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
 import { AdminSidebar } from '@/components/admin-sidebar'
+import { formatPHP } from '@/lib/currency'
 
 const stats = [
   {
     label: 'Total Sales',
-    value: '$24,580',
+    value: 24580,
+    format: 'currency',
     change: '+12%',
     icon: BarChart3,
   },
   {
     label: 'Orders',
-    value: '342',
+    value: 342,
+    format: 'number',
     change: '+8%',
     icon: ShoppingCart,
   },
   {
     label: 'Products',
-    value: '48',
+    value: 48,
+    format: 'number',
     change: '+3',
     icon: Package,
   },
   {
     label: 'Customers',
-    value: '1,205',
+    value: 1205,
+    format: 'number',
     change: '+5%',
     icon: Users,
   },
 ]
 
 const recentOrders = [
-  { id: '#OR-001', customer: 'John Smith', amount: '$245', status: 'Shipped' },
-  { id: '#OR-002', customer: 'Emma Wilson', amount: '$385', status: 'Processing' },
-  { id: '#OR-003', customer: 'Michael Brown', amount: '$165', status: 'Pending' },
-  { id: '#OR-004', customer: 'Sarah Davis', amount: '$215', status: 'Delivered' },
+  { id: '#OR-001', customer: 'John Smith', amount: 245, status: 'Shipped' },
+  { id: '#OR-002', customer: 'Emma Wilson', amount: 385, status: 'Processing' },
+  { id: '#OR-003', customer: 'Michael Brown', amount: 165, status: 'Pending' },
+  { id: '#OR-004', customer: 'Sarah Davis', amount: 215, status: 'Delivered' },
 ]
 
 const topProducts = [
-  { name: 'Midnight Elegance', sales: 142, revenue: '$34,930' },
-  { name: 'Velvet Spice', sales: 128, revenue: '$27,392' },
-  { name: 'Golden Hour', sales: 115, revenue: '$20,025' },
-  { name: 'Silk Dreams', sales: 98, revenue: '$20,090' },
+  { name: 'Midnight Elegance', sales: 142, revenue: 34930 },
+  { name: 'Velvet Spice', sales: 128, revenue: 27392 },
+  { name: 'Golden Hour', sales: 115, revenue: 20025 },
+  { name: 'Silk Dreams', sales: 98, revenue: 20090 },
 ]
 
 export default function AdminDashboard() {
@@ -79,7 +84,9 @@ export default function AdminDashboard() {
                   <Icon className="w-5 h-5 text-accent" />
                 </div>
                 <p className="font-serif text-3xl text-foreground mb-2">
-                  {stat.value}
+                  {stat.format === 'currency'
+                    ? formatPHP(stat.value)
+                    : stat.value.toLocaleString('en-PH')}
                 </p>
                 <p className="text-xs text-accent">
                   {stat.change} from last month
@@ -107,7 +114,7 @@ export default function AdminDashboard() {
                     <p className="text-sm text-foreground/60">{order.customer}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="font-medium text-foreground">{order.amount}</p>
+                    <p className="font-medium text-foreground">{formatPHP(order.amount)}</p>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       order.status === 'Delivered'
                         ? 'bg-green-100 text-green-700'
@@ -184,7 +191,7 @@ export default function AdminDashboard() {
                   <tr key={product.name} className="border-b border-border last:border-0">
                     <td className="py-3 px-4 text-foreground">{product.name}</td>
                     <td className="py-3 px-4 text-foreground">{product.sales}</td>
-                    <td className="py-3 px-4 font-medium text-foreground">{product.revenue}</td>
+                    <td className="py-3 px-4 font-medium text-foreground">{formatPHP(product.revenue)}</td>
                   </tr>
                 ))}
               </tbody>

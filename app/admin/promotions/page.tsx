@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
+import { formatPHP } from '@/lib/currency'
 
 const promotions = [
-  { id: 1, code: 'SPRING2024', type: 'Percentage', discount: '20%', usage: '156/500', status: 'Active', expires: '2024-04-30' },
-  { id: 2, code: 'WELCOME10', type: 'Fixed', discount: '$10', usage: '342/∞', status: 'Active', expires: '2024-12-31' },
-  { id: 3, code: 'SUMMER15', type: 'Percentage', discount: '15%', usage: '89/300', status: 'Active', expires: '2024-08-31' },
-  { id: 4, code: 'HOLIDAY25', type: 'Percentage', discount: '25%', usage: '0/500', status: 'Scheduled', expires: '2024-12-26' },
-  { id: 5, code: 'VIP30', type: 'Percentage', discount: '30%', usage: '45/∞', status: 'Active', expires: '2024-12-31' },
+  { id: 1, code: 'SPRING2024', type: 'Percentage', discount: 20, usage: '156/500', status: 'Active', expires: '2024-04-30' },
+  { id: 2, code: 'WELCOME10', type: 'Fixed', discount: 10, usage: '342/∞', status: 'Active', expires: '2024-12-31' },
+  { id: 3, code: 'SUMMER15', type: 'Percentage', discount: 15, usage: '89/300', status: 'Active', expires: '2024-08-31' },
+  { id: 4, code: 'HOLIDAY25', type: 'Percentage', discount: 25, usage: '0/500', status: 'Scheduled', expires: '2024-12-26' },
+  { id: 5, code: 'VIP30', type: 'Percentage', discount: 30, usage: '45/∞', status: 'Active', expires: '2024-12-31' },
 ]
 
 export default function AdminPromotionsPage() {
@@ -65,7 +66,9 @@ export default function AdminPromotionsPage() {
                       <p className="font-medium text-foreground">{promo.code}</p>
                     </td>
                     <td className="py-4 px-6 text-foreground">{promo.type}</td>
-                    <td className="py-4 px-6 font-medium text-foreground">{promo.discount}</td>
+                    <td className="py-4 px-6 font-medium text-foreground">
+                      {promo.type === 'Fixed' ? formatPHP(promo.discount) : `${promo.discount}%`}
+                    </td>
                     <td className="py-4 px-6 text-foreground/60">{promo.usage}</td>
                     <td className="py-4 px-6">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${

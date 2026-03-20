@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
+import { SITE_NAME } from '@/lib/site'
 
 export default function AboutPage() {
   return (
@@ -12,7 +13,7 @@ export default function AboutPage() {
       <section className="relative h-96 w-full overflow-hidden bg-muted">
         <Image
           src="/hero-banner.jpg"
-          alt="Pure Path story"
+          alt={`${SITE_NAME} story`}
           fill
           loading="eager"
           sizes="100vw"
@@ -33,16 +34,21 @@ export default function AboutPage() {
               Our Philosophy
             </p>
             <h2 className="font-serif text-4xl text-foreground mb-4">
-              Pure Path
+              {SITE_NAME}
             </h2>
           </div>
 
           <p className="text-lg text-foreground/70 leading-relaxed">
-            Founded in 2026, Pure Path emerged from a simple belief: fragrance is not just a product—it's an experience, a memory, a part of your identity. Every scent we create tells a story of craftsmanship, passion, and dedication to excellence.
+            Spray &amp; Sniff is a boutique fragrance destination located in
+            Mabini, specializing in curated scents and premium inspired-by
+            perfumes.
           </p>
 
           <p className="text-lg text-foreground/70 leading-relaxed">
-            We source the finest ingredients from around the world, working with master perfumers to create fragrances that evoke emotion and inspire confidence. Each bottle contains more than just a scent; it contains our commitment to quality and sustainability.
+            The store is founded on the idea that a great scent is the most
+            invisible yet powerful part of an outfit. That belief inspired the
+            name itself, inviting customers to experience the immediate spray
+            and the lingering sniff of a high-quality fragrance.
           </p>
         </section>
 

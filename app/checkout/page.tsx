@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ChevronLeft, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
+import { formatPHP } from '@/lib/currency'
 
 const STEPS = ['Shipping', 'Payment', 'Review']
 
@@ -339,15 +340,15 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 <div className="flex justify-between text-foreground/70">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatPHP(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-foreground/70">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? 'Free' : formatPHP(shipping)}</span>
                 </div>
                 <div className="flex justify-between text-foreground/70">
                   <span>Tax</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>{formatPHP(tax)}</span>
                 </div>
               </div>
 
@@ -355,7 +356,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between">
                   <span className="font-medium text-foreground">Total</span>
                   <span className="font-serif text-2xl text-foreground">
-                    ${total.toFixed(2)}
+                    {formatPHP(total)}
                   </span>
                 </div>
               </div>

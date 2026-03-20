@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Edit, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
+import { formatPHP } from '@/lib/currency'
 import {
   PRODUCT_CATEGORIES,
   getStoredAdminProducts,
@@ -173,7 +174,7 @@ export default function AdminProductsPage() {
                           {product.category}
                         </td>
                         <td className="px-6 py-4 font-medium text-foreground">
-                          ${product.price}
+                          {formatPHP(product.price)}
                         </td>
                         <td className="px-6 py-4">
                           <span

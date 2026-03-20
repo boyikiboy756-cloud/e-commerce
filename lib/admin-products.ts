@@ -1,5 +1,6 @@
 import type { Product } from '@/lib/products'
 import { products } from '@/lib/products'
+import { SITE_NAME } from '@/lib/site'
 
 export const ADMIN_PRODUCTS_STORAGE_KEY = 'admin-products'
 
@@ -33,7 +34,7 @@ export interface ProductFormValues {
 
 export const initialProductFormValues: ProductFormValues = {
   name: '',
-  brand: 'Pure Path',
+  brand: SITE_NAME,
   description: '',
   category: PRODUCT_CATEGORIES[0],
   gender: 'unisex',
