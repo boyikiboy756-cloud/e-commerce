@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/auth-context'
 import { Toaster } from '@/components/ui/toaster'
+import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/site'
 import './globals.css'
 
 const geistSans = Geist({
@@ -21,8 +22,8 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'Pure Path - Luxury Fragrances',
-  description: 'Discover premium luxury fragrances crafted with the finest ingredients. Explore our collections and find your signature scent.',
+  title: `${SITE_NAME} - Luxury Fragrances`,
+  description: SITE_DESCRIPTION,
   generator: 'v0.app',
   icons: {
     icon: [

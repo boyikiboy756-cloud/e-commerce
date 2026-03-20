@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { AuthMenu } from '@/components/auth-menu'
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { SITE_NAME } from '@/lib/site'
 
 export function Header() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <span className="font-serif text-2xl font-light text-foreground">
-              Pure Path
+              {SITE_NAME}
             </span>
           </Link>
 

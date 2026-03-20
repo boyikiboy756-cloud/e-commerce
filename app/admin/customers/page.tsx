@@ -4,16 +4,17 @@ import Link from 'next/link'
 import { Eye, Mail, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
+import { formatPHP } from '@/lib/currency'
 
 const customers = [
-  { id: 1, name: 'John Smith', email: 'john@example.com', orders: 3, spent: '$1,245', joined: '2024-01-15' },
-  { id: 2, name: 'Emma Wilson', email: 'emma@example.com', orders: 5, spent: '$2,385', joined: '2023-11-20' },
-  { id: 3, name: 'Michael Brown', email: 'michael@example.com', orders: 2, spent: '$520', joined: '2024-02-10' },
-  { id: 4, name: 'Sarah Davis', email: 'sarah@example.com', orders: 8, spent: '$3,645', joined: '2023-09-05' },
-  { id: 5, name: 'James Johnson', email: 'james@example.com', orders: 4, spent: '$1,895', joined: '2024-01-28' },
-  { id: 6, name: 'Lisa Anderson', email: 'lisa@example.com', orders: 6, spent: '$2,750', joined: '2023-10-12' },
-  { id: 7, name: 'Robert Taylor', email: 'robert@example.com', orders: 1, spent: '$245', joined: '2024-02-20' },
-  { id: 8, name: 'Jennifer White', email: 'jennifer@example.com', orders: 7, spent: '$3,125', joined: '2023-12-15' },
+  { id: 1, name: 'John Smith', email: 'john@example.com', orders: 3, spent: 1245, joined: '2024-01-15' },
+  { id: 2, name: 'Emma Wilson', email: 'emma@example.com', orders: 5, spent: 2385, joined: '2023-11-20' },
+  { id: 3, name: 'Michael Brown', email: 'michael@example.com', orders: 2, spent: 520, joined: '2024-02-10' },
+  { id: 4, name: 'Sarah Davis', email: 'sarah@example.com', orders: 8, spent: 3645, joined: '2023-09-05' },
+  { id: 5, name: 'James Johnson', email: 'james@example.com', orders: 4, spent: 1895, joined: '2024-01-28' },
+  { id: 6, name: 'Lisa Anderson', email: 'lisa@example.com', orders: 6, spent: 2750, joined: '2023-10-12' },
+  { id: 7, name: 'Robert Taylor', email: 'robert@example.com', orders: 1, spent: 245, joined: '2024-02-20' },
+  { id: 8, name: 'Jennifer White', email: 'jennifer@example.com', orders: 7, spent: 3125, joined: '2023-12-15' },
 ]
 
 export default function AdminCustomersPage() {
@@ -69,7 +70,7 @@ export default function AdminCustomersPage() {
                     </td>
                     <td className="py-4 px-6 text-foreground/60">{customer.email}</td>
                     <td className="py-4 px-6 text-foreground">{customer.orders}</td>
-                    <td className="py-4 px-6 font-medium text-foreground">{customer.spent}</td>
+                    <td className="py-4 px-6 font-medium text-foreground">{formatPHP(customer.spent)}</td>
                     <td className="py-4 px-6 text-foreground/60">{customer.joined}</td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-end gap-2">

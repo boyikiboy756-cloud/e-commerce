@@ -4,15 +4,16 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Header } from '@/components/header'
 import { ProductCard } from '@/components/product-card'
+import { formatPHP } from '@/lib/currency'
 import { products } from '@/lib/products'
 import { Button } from '@/components/ui/button'
 
 const SCENT_FAMILIES = ['Floral', 'Woody', 'Fresh', 'Citrus', 'Oriental', 'Spicy', 'Aquatic', 'Aromatic']
 const GENDERS = ['Male', 'Female', 'Unisex']
 const PRICE_RANGES = [
-  { label: 'Under $100', min: 0, max: 100 },
-  { label: '$100 - $200', min: 100, max: 200 },
-  { label: '$200+', min: 200, max: Infinity },
+  { min: 0, max: 100 },
+  { min: 100, max: 200 },
+  { min: 200, max: Infinity },
 ]
 
 export default function ShopPage() {
@@ -144,7 +145,7 @@ export default function ShopPage() {
                 <h4 className="font-medium text-foreground mb-3">Price Range</h4>
                 <div className="space-y-2">
                   {PRICE_RANGES.map((range) => (
-                    <label key={range.label} className="flex items-center gap-3 cursor-pointer">
+                    <label key={`${range.min}-${range.max}`} className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="radio"
                         name="price"
@@ -156,7 +157,11 @@ export default function ShopPage() {
                         className="w-4 h-4"
                       />
                       <span className="text-sm text-foreground/70 hover:text-foreground">
-                        {range.label}
+                        {range.min === 0
+                          ? `Under ${formatPHP(range.max)}`
+                          : range.max === Infinity
+                            ? `${formatPHP(range.min)}+`
+                            : `${formatPHP(range.min)} - ${formatPHP(range.max)}`}
                       </span>
                     </label>
                   ))}

@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { useAuth } from '@/lib/auth-context'
 import { Spinner } from '@/components/ui/spinner'
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  DEMO_USER_EMAIL,
+  DEMO_USER_PASSWORD,
+  SITE_NAME,
+} from '@/lib/site'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -54,7 +61,7 @@ export default function SignInPage() {
               Welcome Back
             </h1>
             <p className="text-foreground/60">
-              Sign in to your Pure Path account
+              Sign in to your {SITE_NAME} account
             </p>
           </div>
 
@@ -69,10 +76,10 @@ export default function SignInPage() {
           <div className="p-4 bg-muted rounded-lg space-y-2">
             <p className="text-sm font-medium text-foreground">Demo Credentials:</p>
             <p className="text-xs text-foreground/70">
-              <strong>Admin:</strong> Sprayandsniff@gmail.com / admin123
+              <strong>Admin:</strong> {ADMIN_EMAIL} / {ADMIN_PASSWORD}
             </p>
             <p className="text-xs text-foreground/70">
-              <strong>User:</strong> user@purepath.com / user123
+              <strong>User:</strong> {DEMO_USER_EMAIL} / {DEMO_USER_PASSWORD}
             </p>
           </div>
 
@@ -140,7 +147,7 @@ export default function SignInPage() {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-background text-foreground/60">
-                New to Pure Path?
+                New to {SITE_NAME}?
               </span>
             </div>
           </div>

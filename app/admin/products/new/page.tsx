@@ -19,6 +19,7 @@ import {
   saveStoredAdminProducts,
   type ProductFormValues,
 } from '@/lib/admin-products'
+import { SITE_NAME } from '@/lib/site'
 import { toast } from '@/hooks/use-toast'
 
 type ProductFormErrors = Partial<Record<keyof ProductFormValues, string>>
@@ -183,7 +184,7 @@ export default function NewProductPage() {
                           name="brand"
                           value={formValues.brand}
                           onChange={handleChange}
-                          placeholder="Pure Path"
+                          placeholder={SITE_NAME}
                           aria-invalid={!!errors.brand}
                         />
                         {errors.brand ? (

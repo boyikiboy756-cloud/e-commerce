@@ -6,6 +6,7 @@ import { Heart, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { ProductCard } from '@/components/product-card'
+import { formatPHP } from '@/lib/currency'
 import { getProductById, products } from '@/lib/products'
 
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -147,7 +148,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             {/* Price & Action */}
             <div className="space-y-4">
               <div className="text-3xl font-serif text-foreground">
-                ${(selectedSize?.price || product.price) * quantity}
+                {formatPHP((selectedSize?.price || product.price) * quantity)}
               </div>
 
               <div className="flex gap-4">

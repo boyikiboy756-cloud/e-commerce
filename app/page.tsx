@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { ProductCard } from '@/components/product-card'
 import { getFeaturedProducts, getNewArrivals } from '@/lib/products'
+import { SITE_NAME } from '@/lib/site'
 
 export default function Home() {
   const featured = getFeaturedProducts()
@@ -94,12 +95,12 @@ export default function Home() {
                 Our Story
               </p>
               <h2 className="font-serif text-4xl text-foreground mb-4">
-                Pure Path Philosophy
+                {SITE_NAME} Philosophy
               </h2>
             </div>
             
             <p className="text-foreground/70 text-lg leading-relaxed">
-              Since our founding, Pure Path has been dedicated to creating exceptional fragrances that tell a story. Each scent is meticulously crafted using the finest ingredients sourced from around the world.
+              Since our founding, {SITE_NAME} has been dedicated to creating exceptional fragrances that tell a story. Each scent is meticulously crafted using the finest ingredients sourced from around the world.
             </p>
             
             <p className="text-foreground/70 text-lg leading-relaxed">
@@ -171,7 +172,7 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
               <h3 className="font-serif text-lg text-foreground mb-4">
-                Pure Path
+                {SITE_NAME}
               </h3>
               <p className="text-foreground/60 text-sm">
                 Crafting premium fragrances since 2010
@@ -208,7 +209,7 @@ export default function Home() {
 
           <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-foreground/60">
-              © 2024 Pure Path. All rights reserved.
+              © 2024 {SITE_NAME}. All rights reserved.
             </p>
             <div className="flex gap-6">
               <button

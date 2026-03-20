@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
+import { formatPHP } from '@/lib/currency'
 import { getProductById } from '@/lib/products'
 
 interface CartItem {
@@ -120,10 +121,10 @@ export default function CartPage() {
                       {/* Price */}
                       <div className="text-right flex-1">
                         <p className="font-serif text-lg text-foreground">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {formatPHP(item.price * item.quantity)}
                         </p>
                         <p className="text-xs text-foreground/60">
-                          ${item.price} each
+                          {formatPHP(item.price)} each
                         </p>
                       </div>
 
@@ -152,24 +153,24 @@ export default function CartPage() {
               <div className="space-y-3">
                 <div className="flex justify-between text-foreground/70">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatPHP(subtotal)}</span>
                 </div>
                 
                 <div className="flex justify-between text-foreground/70">
                   <span>Shipping</span>
                   <span>
-                    {shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}
+                    {shipping === 0 ? 'Free' : formatPHP(shipping)}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-foreground/70">
                   <span>Tax</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>{formatPHP(tax)}</span>
                 </div>
 
                 {shipping === 0 && (
                   <p className="text-xs text-accent">
-                    Free shipping on orders over $100
+                    Free shipping on orders over {formatPHP(100)}
                   </p>
                 )}
               </div>
@@ -178,7 +179,7 @@ export default function CartPage() {
                 <div className="flex justify-between mb-6">
                   <span className="font-medium text-foreground">Total</span>
                   <span className="font-serif text-2xl text-foreground">
-                    ${total.toFixed(2)}
+                    {formatPHP(total)}
                   </span>
                 </div>
 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth-context'
 import { Spinner } from '@/components/ui/spinner'
+import { ADMIN_EMAIL, ADMIN_PASSWORD, SITE_NAME } from '@/lib/site'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -31,7 +32,7 @@ export default function AdminLoginPage() {
     setError('')
 
     // Only allow admin credentials
-    if (email !== 'Sprayandsniff@gmail.com') {
+    if (email.trim().toLowerCase() !== ADMIN_EMAIL) {
       setError('Only admin accounts can access this page')
       return
     }
@@ -52,7 +53,7 @@ export default function AdminLoginPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="font-serif text-4xl text-foreground">
-            Pure Path Admin
+            {SITE_NAME} Admin
           </h1>
           <p className="text-foreground/60">
             Sign in to manage your store
@@ -69,8 +70,8 @@ export default function AdminLoginPage() {
         {/* Demo Credentials */}
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-sm font-medium text-foreground mb-2">Admin Credentials:</p>
-          <p className="text-xs text-foreground/70 font-mono">Sprayandsniff@gmail.com</p>
-          <p className="text-xs text-foreground/70 font-mono">admin123</p>
+          <p className="text-xs text-foreground/70 font-mono">{ADMIN_EMAIL}</p>
+          <p className="text-xs text-foreground/70 font-mono">{ADMIN_PASSWORD}</p>
         </div>
 
         {/* Form */}
@@ -85,7 +86,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="Sprayandsniff@gmail.com"
+              placeholder={ADMIN_EMAIL}
               className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
@@ -119,8 +120,8 @@ export default function AdminLoginPage() {
         {/* Demo Credentials */}
         <div className="bg-muted rounded-lg p-4 space-y-2">
           <p className="text-xs font-medium text-foreground/60 uppercase">Demo Credentials</p>
-          <p className="text-sm text-foreground/70">Email: Sprayandsniff@gmail.com</p>
-          <p className="text-sm text-foreground/70">Password: admin123</p>
+          <p className="text-sm text-foreground/70">Email: {ADMIN_EMAIL}</p>
+          <p className="text-sm text-foreground/70">Password: {ADMIN_PASSWORD}</p>
         </div>
       </div>
     </div>
