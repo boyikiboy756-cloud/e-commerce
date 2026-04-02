@@ -76,6 +76,49 @@
   --sidebar-ring: oklch(0.7 0.12 45);
 }
 
+.admin-shell {
+  --background: oklch(0.985 0.015 355);
+  --foreground: oklch(0.28 0.05 360);
+  --card: oklch(0.995 0.008 355);
+  --card-foreground: oklch(0.28 0.05 360);
+  --popover: oklch(0.995 0.008 355);
+  --popover-foreground: oklch(0.28 0.05 360);
+  --primary: oklch(0.72 0.16 356);
+  --primary-foreground: oklch(0.99 0.01 355);
+  --secondary: oklch(0.95 0.03 352);
+  --secondary-foreground: oklch(0.32 0.05 360);
+  --muted: oklch(0.955 0.025 352);
+  --muted-foreground: oklch(0.53 0.05 360);
+  --accent: oklch(0.74 0.15 354);
+  --accent-foreground: oklch(0.99 0.01 355);
+  --border: oklch(0.91 0.03 352);
+  --input: oklch(0.99 0.01 355);
+  --ring: oklch(0.76 0.15 354);
+  --chart-1: oklch(0.72 0.16 356);
+  --chart-2: oklch(0.8 0.11 348);
+  --chart-3: oklch(0.68 0.13 12);
+  --chart-4: oklch(0.63 0.11 330);
+  --chart-5: oklch(0.86 0.06 20);
+  --sidebar: oklch(0.975 0.02 352);
+  --sidebar-foreground: oklch(0.28 0.05 360);
+  --sidebar-primary: oklch(0.72 0.16 356);
+  --sidebar-primary-foreground: oklch(0.99 0.01 355);
+  --sidebar-accent: oklch(0.94 0.035 352);
+  --sidebar-accent-foreground: oklch(0.3 0.05 360);
+  --sidebar-border: oklch(0.9 0.03 352);
+  --sidebar-ring: oklch(0.76 0.15 354);
+  background:
+    radial-gradient(circle at top left, rgba(255, 211, 228, 0.42), transparent 28%),
+    radial-gradient(circle at top right, rgba(255, 236, 244, 0.8), transparent 24%),
+    linear-gradient(180deg, rgba(255, 248, 251, 0.94), rgba(255, 242, 247, 0.96));
+}
+
+.admin-shell .bg-card {
+  box-shadow:
+    0 20px 45px rgba(183, 92, 127, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.65) inset;
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

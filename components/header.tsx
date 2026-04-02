@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button'
 import { AuthMenu } from '@/components/auth-menu'
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useStore } from '@/lib/store-context'
 import { SITE_NAME } from '@/lib/site'
 
 export function Header() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, isAuthenticated, isAdmin, isLoading, logout } = useAuth()
+  const { user, isAuthenticated, canAccessBackoffice, isLoading, logout } = useAuth()
+  const { cartCount } = useStore()
 
   return (
     <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur-sm border-b border-border">
@@ -78,7 +80,11 @@ export function Header() {
               className="relative p-2 hover:bg-muted rounded-lg transition-colors"
             >
               <ShoppingBag className="w-5 h-5 text-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
+              {cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-foreground">
+                  {cartCount}
+                </span>
+              )}
             </Link>
 
             <div className="hidden sm:inline-flex ml-4">
@@ -154,14 +160,14 @@ export function Header() {
                       </div>
                     </div>
 
-                    {isAdmin ? (
+                    {canAccessBackoffice ? (
                       <Button className="w-full justify-start" asChild>
                         <Link
                           href="/admin/dashboard"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           <LayoutDashboard className="h-4 w-4" />
-                          Admin Dashboard
+                          {user?.role === 'STAFF' ? 'Operations Dashboard' : 'Admin Dashboard'}
                         </Link>
                       </Button>
                     ) : (

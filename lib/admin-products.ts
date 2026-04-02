@@ -26,10 +26,13 @@ export interface ProductFormValues {
   baseNotes: string
   occasions: string
   seasons: string
-  image: string
+  uploadedImage: string
   featured: boolean
   isNewArrival: boolean
   inStock: boolean
+  stockQuantity: string
+  reorderPoint: string
+  storageLocation: string
 }
 
 export const initialProductFormValues: ProductFormValues = {
@@ -46,10 +49,13 @@ export const initialProductFormValues: ProductFormValues = {
   baseNotes: '',
   occasions: 'Day, Evening',
   seasons: 'All Seasons',
-  image: '',
+  uploadedImage: '',
   featured: false,
   isNewArrival: true,
   inStock: true,
+  stockQuantity: '12',
+  reorderPoint: '3',
+  storageLocation: 'A1-01',
 }
 
 function parseList(value: string, fallback: string[]): string[] {
@@ -125,7 +131,7 @@ export function createProductFromForm(values: ProductFormValues): Product {
         price,
       },
     ],
-    images: [values.image.trim() || '/placeholder.jpg'],
+    images: [values.uploadedImage.trim() || '/placeholder.jpg'],
     rating: 5,
     reviewCount: 0,
     inStock: values.inStock,

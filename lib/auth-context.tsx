@@ -7,9 +7,11 @@ import {
   DEMO_USER_EMAIL,
   DEMO_USER_PASSWORD,
   SITE_NAME,
+  STAFF_EMAIL,
+  STAFF_PASSWORD,
 } from '@/lib/site'
 
-export type UserRole = 'ADMIN' | 'USER'
+export type UserRole = 'ADMIN' | 'STAFF' | 'USER'
 
 export interface User {
   id: string
@@ -22,6 +24,8 @@ export interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isAdmin: boolean
+  isStaff: boolean
+  canAccessBackoffice: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string, name: string) => Promise<void>
@@ -38,6 +42,13 @@ const DEMO_USERS = {
     name: `${SITE_NAME} Admin`,
     password: ADMIN_PASSWORD,
     role: 'ADMIN' as UserRole,
+  },
+  [STAFF_EMAIL]: {
+    id: 'staff-1',
+    email: STAFF_EMAIL,
+    name: `${SITE_NAME} Staff`,
+    password: STAFF_PASSWORD,
+    role: 'STAFF' as UserRole,
   },
   [DEMO_USER_EMAIL]: {
     id: 'user-1',
@@ -129,6 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',
+    isStaff: user?.role === 'STAFF',
+    canAccessBackoffice: user?.role === 'ADMIN' || user?.role === 'STAFF',
     isLoading,
     login,
     signup,

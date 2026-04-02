@@ -1,29 +1,24 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Edit, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
+import { useAuth } from '@/lib/auth-context'
 import { formatPHP } from '@/lib/currency'
-import {
-  PRODUCT_CATEGORIES,
-  getStoredAdminProducts,
-  saveStoredAdminProducts,
-} from '@/lib/admin-products'
-import { products, type Product } from '@/lib/products'
+import { PRODUCT_CATEGORIES } from '@/lib/admin-products'
+import type { Product } from '@/lib/products'
+import { useStore } from '@/lib/store-context'
 import { toast } from '@/hooks/use-toast'
 
 const ALL_CATEGORIES = 'All Categories'
 
 export default function AdminProductsPage() {
-  const [catalog, setCatalog] = useState<Product[]>(products)
+  const { isAdmin, user } = useAuth()
+  const { catalog, getAvailableStock, getAvailabilityStatus, removeCatalogProduct } = useStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES)
-
-  useEffect(() => {
-    setCatalog(getStoredAdminProducts())
-  }, [])
 
   const categoryOptions = useMemo(() => {
     const uniqueCategories = new Set([
@@ -61,18 +56,17 @@ export default function AdminProductsPage() {
       return
     }
 
-    const nextProducts = catalog.filter((item) => item.id !== product.id)
-    setCatalog(nextProducts)
-    saveStoredAdminProducts(nextProducts)
+    const result = removeCatalogProduct(product.id)
 
     toast({
-      title: 'Product removed',
-      description: `${product.name} has been removed from the admin catalog.`,
+      title: result.ok ? 'Product removed' : 'Unable to remove product',
+      description: result.message,
+      variant: result.ok ? 'default' : 'destructive',
     })
   }
 
   return (
-    <ProtectedRoute requiredRole="ADMIN">
+    <ProtectedRoute requiredRole={['ADMIN', 'STAFF']}>
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -91,8 +85,10 @@ export default function AdminProductsPage() {
                   Products
                 </h1>
                 <p className="mt-2 text-sm text-foreground/60">
-                  Manage your catalog and review any products you create in this
-                  browser session.
+                  Manage the catalog your storefront, inventory workspace, and POS terminal all share.
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-foreground/45">
+                  Signed in as {user?.role === 'STAFF' ? 'staff' : 'admin'}
                 </p>
               </div>
 
@@ -177,25 +173,21 @@ export default function AdminProductsPage() {
                           {formatPHP(product.price)}
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              product.inStock
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}
-                          >
-                            {product.inStock ? 'In Stock' : 'Out of Stock'}
+                          <span className="text-sm font-medium text-foreground">
+                            {getAvailableStock(product.id)} on hand
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span
                             className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              product.isNewArrival
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-blue-100 text-blue-700'
+                              getAvailabilityStatus(product.id) === 'In Stock'
+                                ? 'bg-green-100 text-green-700'
+                                : getAvailabilityStatus(product.id) === 'Low Stock'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-red-100 text-red-700'
                             }`}
                           >
-                            {product.isNewArrival ? 'New Arrival' : 'Active'}
+                            {getAvailabilityStatus(product.id)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -209,14 +201,16 @@ export default function AdminProductsPage() {
                             >
                               <Edit className="h-4 w-4" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(product)}
-                              className="rounded-lg p-2 text-destructive transition-colors hover:bg-destructive/10"
-                              aria-label={`Delete ${product.name}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {isAdmin ? (
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(product)}
+                                className="rounded-lg p-2 text-destructive transition-colors hover:bg-destructive/10"
+                                aria-label={`Delete ${product.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            ) : null}
                           </div>
                         </td>
                       </tr>

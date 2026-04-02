@@ -1,20 +1,44 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, use } from 'react'
+import { use, useEffect, useState } from 'react'
 import { Heart, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { ProductCard } from '@/components/product-card'
 import { formatPHP } from '@/lib/currency'
-import { getProductById, products } from '@/lib/products'
+import { useStore } from '@/lib/store-context'
+import { toast } from '@/hooks/use-toast'
 
-export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProductPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = use(params)
+  const {
+    addToCart,
+    getAvailabilityStatus,
+    getAvailableStock,
+    getInventoryRecord,
+    getProductById,
+  } = useStore()
   const product = getProductById(id)
-  const [selectedSize, setSelectedSize] = useState(product?.sizes[0] || null)
+  const inventoryRecord = getInventoryRecord(id)
+  const isArchived = inventoryRecord?.isArchived ?? false
+  const [selectedSizeMl, setSelectedSizeMl] = useState<number | null>(null)
   const [quantity, setQuantity] = useState(1)
-  const [mainImage, setMainImage] = useState(product?.images[0] || '')
+  const [mainImage, setMainImage] = useState('')
+
+  useEffect(() => {
+    if (!product) {
+      return
+    }
+
+    setSelectedSizeMl(product.sizes[0]?.ml ?? null)
+    setMainImage(product.images[0] ?? '')
+    setQuantity(1)
+  }, [product])
 
   if (!product) {
     return (
@@ -27,37 +51,66 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     )
   }
 
+  const selectedSize =
+    product.sizes.find((size) => size.ml === selectedSizeMl) ?? product.sizes[0]
+  const availableStock = getAvailableStock(product.id)
+  const availability = getAvailabilityStatus(product.id)
+  const displayAvailability = isArchived ? 'Archived' : availability
   const relatedProducts = product.relatedProducts
-    .map(id => getProductById(id))
-    .filter(Boolean)
+    .map((productId) => getProductById(productId))
+    .filter((relatedProduct) =>
+      relatedProduct ? !getInventoryRecord(relatedProduct.id)?.isArchived : false,
+    )
+  const availabilityTone =
+    isArchived
+      ? 'bg-slate-200 text-slate-700'
+      : availability === 'In Stock'
+      ? 'bg-green-100 text-green-700'
+      : availability === 'Low Stock'
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-red-100 text-red-700'
+
+  const handleAddToCart = () => {
+    const result = addToCart({
+      productId: product.id,
+      quantity,
+      size: selectedSize.ml,
+      unitPrice: selectedSize.price,
+    })
+
+    toast({
+      title: result.ok ? 'Cart updated' : 'Unable to add item',
+      description: result.message,
+      variant: result.ok ? 'default' : 'destructive',
+    })
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Product Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
               <Image
-                src={mainImage}
+                src={mainImage || product.images[0]}
                 alt={product.name}
                 fill
                 className="object-cover"
                 priority
               />
             </div>
-            
+
             <div className="grid grid-cols-4 gap-4">
               {product.images.map((img, idx) => (
                 <button
-                  key={idx}
+                  key={img}
                   onClick={() => setMainImage(img)}
                   className={`relative aspect-square rounded-lg overflow-hidden bg-muted border-2 transition-colors ${
-                    mainImage === img ? 'border-accent' : 'border-border'
+                    (mainImage || product.images[0]) === img ? 'border-accent' : 'border-border'
                   }`}
+                  aria-label={`View product image ${idx + 1}`}
                 >
                   <Image
                     src={img}
@@ -70,7 +123,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             </div>
           </div>
 
-          {/* Product Details */}
           <div className="space-y-8">
             <div>
               <p className="text-sm font-medium text-accent uppercase tracking-wide mb-2">
@@ -79,19 +131,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               <h1 className="font-serif text-4xl sm:text-5xl text-foreground mb-4">
                 {product.name}
               </h1>
-              
+
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
+                  {[...Array(5)].map((_, index) => (
                     <span
-                      key={i}
+                      key={index}
                       className={`text-lg ${
-                        i < Math.floor(product.rating)
-                          ? 'text-accent'
-                          : 'text-muted'
+                        index < Math.floor(product.rating) ? 'text-accent' : 'text-muted'
                       }`}
                     >
-                      ★
+                      *
                     </span>
                   ))}
                 </div>
@@ -103,18 +153,30 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               <p className="text-lg text-foreground/80 leading-relaxed mb-6">
                 {product.description}
               </p>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${availabilityTone}`}>
+                  {displayAvailability}
+                </span>
+                <p className="text-sm text-foreground/60">
+                  {isArchived
+                    ? 'This product has been archived and is no longer available for checkout or POS sales.'
+                    : availability === 'Out of Stock'
+                    ? 'Inventory is currently unavailable for online and in-store sales.'
+                    : `${availableStock} unit(s) available across the store.`}
+                </p>
+              </div>
             </div>
 
-            {/* Size Selection */}
             <div>
               <h3 className="font-medium text-foreground mb-4">Size</h3>
               <div className="grid grid-cols-3 gap-3">
                 {product.sizes.map((size) => (
                   <button
                     key={size.ml}
-                    onClick={() => setSelectedSize(size)}
+                    onClick={() => setSelectedSizeMl(size.ml)}
                     className={`py-3 px-4 rounded-lg border-2 font-medium transition-colors ${
-                      selectedSize?.ml === size.ml
+                      selectedSize.ml === size.ml
                         ? 'bg-accent text-accent-foreground border-accent'
                         : 'bg-background border-border text-foreground hover:border-accent'
                     }`}
@@ -125,54 +187,57 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               </div>
             </div>
 
-            {/* Quantity */}
             <div>
               <h3 className="font-medium text-foreground mb-4">Quantity</h3>
               <div className="flex items-center gap-4 w-fit">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="w-10 h-10 rounded-lg border border-border hover:bg-muted transition-colors"
+                  aria-label="Decrease quantity"
                 >
-                  −
+                  -
                 </button>
                 <span className="w-8 text-center font-medium">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-10 h-10 rounded-lg border border-border hover:bg-muted transition-colors"
+                  onClick={() => setQuantity(Math.min(Math.max(1, availableStock), quantity + 1))}
+                  disabled={availableStock === 0}
+                  className="w-10 h-10 rounded-lg border border-border hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
+              {availableStock > 0 && (
+                <p className="mt-2 text-sm text-foreground/60">
+                  Max available right now: {availableStock}
+                </p>
+              )}
             </div>
 
-            {/* Price & Action */}
             <div className="space-y-4">
               <div className="text-3xl font-serif text-foreground">
-                {formatPHP((selectedSize?.price || product.price) * quantity)}
+                {formatPHP(selectedSize.price * quantity)}
               </div>
 
               <div className="flex gap-4">
                 <Button
                   size="lg"
                   className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+                  onClick={handleAddToCart}
+                  disabled={availableStock === 0 || isArchived}
                 >
                   <ShoppingBag className="w-5 h-5 mr-2" />
-                  Add to Cart
+                  {isArchived ? 'Archived' : availableStock === 0 ? 'Out of Stock' : 'Add to Cart'}
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="px-6"
-                >
+                <Button size="lg" variant="outline" className="px-6">
                   <Heart className="w-5 h-5" />
                 </Button>
               </div>
             </div>
 
-            {/* Scent Profile */}
             <div className="border-t border-border pt-8 space-y-6">
               <h3 className="font-serif text-xl text-foreground">Scent Profile</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Top Notes</p>
@@ -208,16 +273,15 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
 
-              {/* Performance Indicators */}
               <div className="grid grid-cols-3 gap-6 pt-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Longevity</p>
                   <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(5)].map((_, index) => (
                       <div
-                        key={i}
+                        key={index}
                         className={`h-2 flex-1 rounded-full ${
-                          i < product.longevity ? 'bg-accent' : 'bg-muted'
+                          index < Math.ceil(product.longevity / 2) ? 'bg-accent' : 'bg-muted'
                         }`}
                       />
                     ))}
@@ -227,11 +291,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Intensity</p>
                   <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(5)].map((_, index) => (
                       <div
-                        key={i}
+                        key={index}
                         className={`h-2 flex-1 rounded-full ${
-                          i < product.intensity ? 'bg-accent' : 'bg-muted'
+                          index < product.intensity ? 'bg-accent' : 'bg-muted'
                         }`}
                       />
                     ))}
@@ -250,7 +314,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         </div>
       </div>
 
-      {/* Related Products */}
       <section className="border-t border-border py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <h2 className="font-serif text-3xl text-foreground mb-12">
@@ -258,7 +321,12 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {relatedProducts.map((prod) => prod && <ProductCard key={prod.id} product={prod} />)}
+            {relatedProducts.map(
+              (relatedProduct) =>
+                relatedProduct && (
+                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                ),
+            )}
           </div>
         </div>
       </section>

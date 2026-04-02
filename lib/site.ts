@@ -5,5 +5,7 @@ export const SITE_DESCRIPTION =
 
 export const ADMIN_EMAIL = 'sprayandsniff@gmail.com'
 export const ADMIN_PASSWORD = 'admin123'
+export const STAFF_EMAIL = 'staff@sprayandsniff.com'
+export const STAFF_PASSWORD = 'staff123'
 export const DEMO_USER_EMAIL = 'user@sprayandsniff.com'
 export const DEMO_USER_PASSWORD = 'user123'

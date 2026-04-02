@@ -2,50 +2,48 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { formatPHP } from '@/lib/currency'
-import { getProductById } from '@/lib/products'
-
-interface CartItem {
-  productId: string
-  size: number
-  quantity: number
-  price: number
-}
+import { useStore } from '@/lib/store-context'
+import { toast } from '@/hooks/use-toast'
 
 export default function CartPage() {
-  const [items, setItems] = useState<CartItem[]>([
-    {
-      productId: '1',
-      size: 50,
-      quantity: 1,
-      price: 245,
-    },
-  ])
+  const {
+    cart,
+    getAvailabilityStatus,
+    getAvailableStock,
+    getInventoryRecord,
+    getProductById,
+    removeFromCart,
+    updateCartQuantity,
+  } = useStore()
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const tax = subtotal * 0.1
-  const shipping = subtotal > 100 ? 0 : 15
+  const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+  const tax = subtotal * 0.12
+  const shipping = subtotal >= 400 || subtotal === 0 ? 0 : 75
   const total = subtotal + tax + shipping
+  const hasUnavailableItems = cart.some((item) => {
+    const record = getInventoryRecord(item.productId)
+    const availableStock = getAvailableStock(item.productId)
 
-  const updateQuantity = (idx: number, newQuantity: number) => {
-    if (newQuantity === 0) {
-      removeItem(idx)
-      return
+    return !record || record.isArchived || availableStock < item.quantity
+  })
+
+  const handleQuantityChange = (productId: string, size: number, nextQuantity: number) => {
+    const result = updateCartQuantity(productId, size, nextQuantity)
+
+    if (!result.ok) {
+      toast({
+        title: 'Cart update failed',
+        description: result.message,
+        variant: 'destructive',
+      })
     }
-    const updatedItems = [...items]
-    updatedItems[idx].quantity = newQuantity
-    setItems(updatedItems)
   }
 
-  const removeItem = (idx: number) => {
-    setItems(items.filter((_, i) => i !== idx))
-  }
-
-  if (items.length === 0) {
+  if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -69,15 +67,22 @@ export default function CartPage() {
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-6">
-            {items.map((item, idx) => {
+            {cart.map((item) => {
               const product = getProductById(item.productId)
-              if (!product) return null
+              if (!product) {
+                return null
+              }
+
+              const availability = getAvailabilityStatus(product.id)
+              const availableStock = getAvailableStock(product.id)
+              const isArchived = getInventoryRecord(product.id)?.isArchived ?? false
 
               return (
-                <div key={idx} className="flex gap-6 pb-6 border-b border-border">
-                  {/* Product Image */}
+                <div
+                  key={`${item.productId}-${item.size}`}
+                  className="flex gap-6 pb-6 border-b border-border"
+                >
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                     <Image
                       src={product.images[0]}
@@ -87,50 +92,59 @@ export default function CartPage() {
                     />
                   </div>
 
-                  {/* Product Info */}
                   <div className="flex-1 min-w-0">
                     <Link href={`/products/${product.id}`} className="hover:text-accent">
                       <h3 className="font-serif text-lg text-foreground mb-1">
                         {product.name}
                       </h3>
                     </Link>
-                    <p className="text-sm text-foreground/60 mb-3">
-                      {item.size}ml
+                    <p className="text-sm text-foreground/60 mb-2">{item.size}ml</p>
+                    <p className="mb-3 text-xs text-foreground/50">
+                      {isArchived
+                        ? 'This product has been archived and cannot be checked out.'
+                        : availability === 'Low Stock'
+                        ? `Low stock: only ${availableStock} left`
+                        : availability === 'Out of Stock'
+                          ? 'Out of stock now. Adjust quantity before checkout.'
+                          : `${availableStock} unit(s) currently available`}
                     </p>
 
                     <div className="flex items-center gap-4">
-                      {/* Quantity */}
                       <div className="flex items-center gap-2 border border-border rounded-lg">
                         <button
-                          onClick={() => updateQuantity(idx, item.quantity - 1)}
+                          onClick={() =>
+                            handleQuantityChange(item.productId, item.size, item.quantity - 1)
+                          }
                           className="w-8 h-8 flex items-center justify-center hover:bg-muted"
+                          aria-label="Decrease quantity"
                         >
-                          −
+                          -
                         </button>
                         <span className="w-6 text-center text-sm font-medium">
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(idx, item.quantity + 1)}
+                          onClick={() =>
+                            handleQuantityChange(item.productId, item.size, item.quantity + 1)
+                          }
                           className="w-8 h-8 flex items-center justify-center hover:bg-muted"
+                          aria-label="Increase quantity"
                         >
                           +
                         </button>
                       </div>
 
-                      {/* Price */}
                       <div className="text-right flex-1">
                         <p className="font-serif text-lg text-foreground">
-                          {formatPHP(item.price * item.quantity)}
+                          {formatPHP(item.unitPrice * item.quantity)}
                         </p>
                         <p className="text-xs text-foreground/60">
-                          {formatPHP(item.price)} each
+                          {formatPHP(item.unitPrice)} each
                         </p>
                       </div>
 
-                      {/* Remove */}
                       <button
-                        onClick={() => removeItem(idx)}
+                        onClick={() => removeFromCart(item.productId, item.size)}
                         className="p-2 hover:bg-destructive/10 rounded-lg text-destructive transition-colors"
                         aria-label="Remove item"
                       >
@@ -143,7 +157,6 @@ export default function CartPage() {
             })}
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
             <div className="bg-muted rounded-lg p-6 space-y-6 sticky top-24">
               <h2 className="font-serif text-xl text-foreground">
@@ -155,12 +168,10 @@ export default function CartPage() {
                   <span>Subtotal</span>
                   <span>{formatPHP(subtotal)}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-foreground/70">
                   <span>Shipping</span>
-                  <span>
-                    {shipping === 0 ? 'Free' : formatPHP(shipping)}
-                  </span>
+                  <span>{shipping === 0 ? 'Free' : formatPHP(shipping)}</span>
                 </div>
 
                 <div className="flex justify-between text-foreground/70">
@@ -168,9 +179,9 @@ export default function CartPage() {
                   <span>{formatPHP(tax)}</span>
                 </div>
 
-                {shipping === 0 && (
+                {shipping === 0 && subtotal > 0 && (
                   <p className="text-xs text-accent">
-                    Free shipping on orders over {formatPHP(100)}
+                    Shipping is free on orders of {formatPHP(400)} or more.
                   </p>
                 )}
               </div>
@@ -188,15 +199,22 @@ export default function CartPage() {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mb-3"
                   asChild
                 >
-                  <Link href="/checkout">Proceed to Checkout</Link>
+                  <Link
+                    href="/checkout"
+                    aria-disabled={hasUnavailableItems}
+                    className={hasUnavailableItems ? 'pointer-events-none opacity-50' : undefined}
+                  >
+                    Proceed to Checkout
+                  </Link>
                 </Button>
 
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full"
-                  asChild
-                >
+                {hasUnavailableItems && (
+                  <p className="text-xs text-destructive">
+                    Remove or adjust unavailable items before continuing to checkout.
+                  </p>
+                )}
+
+                <Button size="lg" variant="outline" className="w-full" asChild>
                   <Link href="/shop">Continue Shopping</Link>
                 </Button>
               </div>

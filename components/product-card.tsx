@@ -3,15 +3,29 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Heart } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { formatPHP } from '@/lib/currency'
 import type { Product } from '@/lib/products'
+import { useStore } from '@/lib/store-context'
 
 interface ProductCardProps {
   product: Product
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { getAvailableStock, getAvailabilityStatus, getInventoryRecord } = useStore()
+  const availableStock = getAvailableStock(product.id)
+  const availability = getAvailabilityStatus(product.id)
+  const isArchived = getInventoryRecord(product.id)?.isArchived ?? false
+  const displayAvailability = isArchived ? 'Archived' : availability
+  const availabilityTone =
+    isArchived
+      ? 'bg-slate-200 text-slate-700'
+      : availability === 'In Stock'
+      ? 'bg-green-100 text-green-700'
+      : availability === 'Low Stock'
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-red-100 text-red-700'
+
   return (
     <Link href={`/products/${product.id}`}>
       <div className="group cursor-pointer">
@@ -33,6 +47,9 @@ export function ProductCard({ product }: ProductCardProps) {
                 New
               </span>
             )}
+            <span className={`inline-block rounded px-3 py-1 text-xs font-medium ${availabilityTone}`}>
+              {displayAvailability}
+            </span>
             <button
               type="button"
               suppressHydrationWarning
@@ -98,6 +115,16 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
             <span className="text-xs text-muted-foreground">from</span>
           </div>
+
+          <p className="text-xs text-foreground/60">
+            {isArchived
+              ? 'Archived from active sales and kept only for store history'
+              : availability === 'Low Stock'
+              ? `Only ${availableStock} left in inventory`
+              : availability === 'Out of Stock'
+                ? 'Temporarily unavailable online and in store'
+                : `${availableStock} units available for online and POS sales`}
+          </p>
         </div>
       </div>
     </Link>

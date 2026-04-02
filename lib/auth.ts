@@ -1,4 +1,4 @@
-import { UserRole } from './auth-context'
+import type { UserRole } from './auth-context'
 
 export interface AuthUser {
   id: string
@@ -36,6 +36,22 @@ export function isAuthenticated(): boolean {
 export function isAdmin(): boolean {
   const user = getAuthUser()
   return user?.role === 'ADMIN'
+}
+
+/**
+ * Check if user is staff
+ */
+export function isStaff(): boolean {
+  const user = getAuthUser()
+  return user?.role === 'STAFF'
+}
+
+/**
+ * Check if user can access backoffice tools
+ */
+export function canAccessBackoffice(): boolean {
+  const user = getAuthUser()
+  return user?.role === 'ADMIN' || user?.role === 'STAFF'
 }
 
 /**

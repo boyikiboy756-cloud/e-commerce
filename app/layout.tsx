@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/auth-context'
+import { StoreProvider } from '@/lib/store-context'
 import { Toaster } from '@/components/ui/toaster'
 import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/site'
 import './globals.css'
@@ -67,8 +68,10 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased">
         <AuthProvider>
-          {children}
-          <Toaster />
+          <StoreProvider>
+            {children}
+            <Toaster />
+          </StoreProvider>
         </AuthProvider>
         <Analytics />
       </body>

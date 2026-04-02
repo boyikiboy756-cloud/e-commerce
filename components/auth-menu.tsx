@@ -15,7 +15,7 @@ import {
 
 export function AuthMenu() {
   const router = useRouter()
-  const { user, isAuthenticated, isAdmin, isLoading, logout } = useAuth()
+  const { user, isAuthenticated, isAdmin, canAccessBackoffice, isLoading, logout } = useAuth()
 
   if (isLoading) {
     return null
@@ -46,13 +46,15 @@ export function AuthMenu() {
         <div className="px-2 py-1.5 text-sm">
           <div className="font-medium">{user?.name}</div>
           <div className="text-xs text-foreground/60">{user?.email}</div>
-          {isAdmin && (
-            <div className="text-xs text-primary mt-1 font-semibold">Admin</div>
+          {canAccessBackoffice && (
+            <div className="text-xs text-primary mt-1 font-semibold">
+              {isAdmin ? 'Admin' : 'Staff'}
+            </div>
           )}
         </div>
         <DropdownMenuSeparator />
 
-        {!isAdmin && (
+        {!canAccessBackoffice && (
           <>
             <DropdownMenuItem asChild>
               <Link href="/account" className="cursor-pointer">
@@ -70,12 +72,12 @@ export function AuthMenu() {
           </>
         )}
 
-        {isAdmin && (
+        {canAccessBackoffice && (
           <>
             <DropdownMenuItem asChild>
               <Link href="/admin/dashboard" className="cursor-pointer">
                 <LayoutDashboard className="w-4 h-4 mr-2" />
-                Admin Dashboard
+                {isAdmin ? 'Admin Dashboard' : 'Operations Dashboard'}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

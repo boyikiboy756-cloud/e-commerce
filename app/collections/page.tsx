@@ -8,28 +8,32 @@ const collections = [
     id: 1,
     name: 'Timeless Classics',
     description: 'Our signature collection of enduring fragrances that stand the test of time.',
-    image: '/hero-banner.jpg',
+    image: '/collections/timeless-classics-banner.jpg',
+    imageAlt: 'Timeless Classics luxury fragrance collection',
     featured: true,
   },
   {
     id: 2,
     name: 'Fresh Essence',
     description: 'Light and refreshing fragrances perfect for everyday wear.',
-    image: '/hero-banner.jpg',
+    image: '/collections/fresh-essence-banner.jpg',
+    imageAlt: 'Fresh Essence luxury fragrance collection',
     featured: false,
   },
   {
     id: 3,
     name: 'Evening Elegance',
     description: 'Sophisticated fragrances designed for special occasions.',
-    image: '/hero-banner.jpg',
+    image: '/collections/evening-elegance-banner.jpg',
+    imageAlt: 'Evening Elegance luxury fragrance collection',
     featured: false,
   },
   {
     id: 4,
     name: 'Oriental Dreams',
     description: 'Exotic and luxurious fragrances with warm, sensual notes.',
-    image: '/hero-banner.jpg',
+    image: '/collections/oriental-dreams-banner.jpg',
+    imageAlt: 'Oriental Dreams luxury fragrance collection',
     featured: false,
   },
 ]
@@ -66,9 +70,10 @@ export default function CollectionsPage() {
                 <div className={`relative h-96 rounded-lg overflow-hidden bg-muted ${idx % 2 === 1 ? 'lg:col-start-2' : ''}`}>
                   <Image
                     src={collection.image}
-                    alt={collection.name}
+                    alt={collection.imageAlt}
                     fill
                     className="object-cover"
+                    sizes="(min-width: 1024px) 50vw, 100vw"
                   />
                 </div>
 

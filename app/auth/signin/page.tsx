@@ -13,11 +13,13 @@ import {
   DEMO_USER_EMAIL,
   DEMO_USER_PASSWORD,
   SITE_NAME,
+  STAFF_EMAIL,
+  STAFF_PASSWORD,
 } from '@/lib/site'
 
 export default function SignInPage() {
   const router = useRouter()
-  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth()
+  const { login, isAuthenticated, canAccessBackoffice, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,13 +28,13 @@ export default function SignInPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      if (isAdmin) {
+      if (canAccessBackoffice) {
         router.push('/admin/dashboard')
       } else {
         router.push('/shop')
       }
     }
-  }, [isAuthenticated, isAdmin, authLoading, router])
+  }, [authLoading, canAccessBackoffice, isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,6 +79,9 @@ export default function SignInPage() {
             <p className="text-sm font-medium text-foreground">Demo Credentials:</p>
             <p className="text-xs text-foreground/70">
               <strong>Admin:</strong> {ADMIN_EMAIL} / {ADMIN_PASSWORD}
+            </p>
+            <p className="text-xs text-foreground/70">
+              <strong>Staff:</strong> {STAFF_EMAIL} / {STAFF_PASSWORD}
             </p>
             <p className="text-xs text-foreground/70">
               <strong>User:</strong> {DEMO_USER_EMAIL} / {DEMO_USER_PASSWORD}

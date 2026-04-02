@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { Header } from '@/components/header'
 import { ProductCard } from '@/components/product-card'
 import { formatPHP } from '@/lib/currency'
-import { products } from '@/lib/products'
+import { useStore } from '@/lib/store-context'
 import { Button } from '@/components/ui/button'
 
 const SCENT_FAMILIES = ['Floral', 'Woody', 'Fresh', 'Citrus', 'Oriental', 'Spicy', 'Aquatic', 'Aromatic']
@@ -17,14 +17,18 @@ const PRICE_RANGES = [
 ]
 
 export default function ShopPage() {
+  const { catalog, getInventoryRecord } = useStore()
   const [selectedScents, setSelectedScents] = useState<string[]>([])
   const [selectedGenders, setSelectedGenders] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null)
   const [sortBy, setSortBy] = useState('featured')
-  const [showFilters, setShowFilters] = useState(true)
 
   // Filter products
-  let filtered = products.filter((product) => {
+  let filtered = catalog.filter((product) => {
+    if (getInventoryRecord(product.id)?.isArchived) {
+      return false
+    }
+
     if (selectedScents.length > 0) {
       const hasScent = product.scentFamily.some(f =>
         selectedScents.includes(f)

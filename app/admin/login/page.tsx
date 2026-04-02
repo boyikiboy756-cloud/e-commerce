@@ -1,16 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth-context'
 import { Spinner } from '@/components/ui/spinner'
-import { ADMIN_EMAIL, ADMIN_PASSWORD, SITE_NAME } from '@/lib/site'
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  SITE_NAME,
+  STAFF_EMAIL,
+  STAFF_PASSWORD,
+} from '@/lib/site'
 
 export default function AdminLoginPage() {
   const router = useRouter()
-  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth()
+  const { login, isAuthenticated, canAccessBackoffice, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,23 +24,17 @@ export default function AdminLoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      if (isAdmin) {
+      if (canAccessBackoffice) {
         router.push('/admin/dashboard')
       } else {
         router.push('/')
       }
     }
-  }, [isAuthenticated, isAdmin, authLoading, router])
+  }, [authLoading, canAccessBackoffice, isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
-    // Only allow admin credentials
-    if (email.trim().toLowerCase() !== ADMIN_EMAIL) {
-      setError('Only admin accounts can access this page')
-      return
-    }
 
     setLoading(true)
     try {
@@ -53,10 +52,10 @@ export default function AdminLoginPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="font-serif text-4xl text-foreground">
-            {SITE_NAME} Admin
+            {SITE_NAME} Operations
           </h1>
           <p className="text-foreground/60">
-            Sign in to manage your store
+            Sign in to manage your store operations
           </p>
         </div>
 
@@ -69,9 +68,9 @@ export default function AdminLoginPage() {
 
         {/* Demo Credentials */}
         <div className="p-4 bg-muted rounded-lg">
-          <p className="text-sm font-medium text-foreground mb-2">Admin Credentials:</p>
-          <p className="text-xs text-foreground/70 font-mono">{ADMIN_EMAIL}</p>
-          <p className="text-xs text-foreground/70 font-mono">{ADMIN_PASSWORD}</p>
+          <p className="text-sm font-medium text-foreground mb-2">Store Credentials:</p>
+          <p className="text-xs text-foreground/70 font-mono">Admin: {ADMIN_EMAIL} / {ADMIN_PASSWORD}</p>
+          <p className="text-xs text-foreground/70 font-mono">Staff: {STAFF_EMAIL} / {STAFF_PASSWORD}</p>
         </div>
 
         {/* Form */}
@@ -86,7 +85,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder={ADMIN_EMAIL}
+              placeholder={STAFF_EMAIL}
               className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
@@ -113,15 +112,15 @@ export default function AdminLoginPage() {
             size="lg"
           >
             {loading && <Spinner className="w-4 h-4" />}
-            {loading ? 'Signing in...' : 'Sign In to Admin'}
+            {loading ? 'Signing in...' : 'Sign In to Operations'}
           </Button>
         </form>
 
         {/* Demo Credentials */}
         <div className="bg-muted rounded-lg p-4 space-y-2">
           <p className="text-xs font-medium text-foreground/60 uppercase">Demo Credentials</p>
-          <p className="text-sm text-foreground/70">Email: {ADMIN_EMAIL}</p>
-          <p className="text-sm text-foreground/70">Password: {ADMIN_PASSWORD}</p>
+          <p className="text-sm text-foreground/70">Admin: {ADMIN_EMAIL} / {ADMIN_PASSWORD}</p>
+          <p className="text-sm text-foreground/70">Staff: {STAFF_EMAIL} / {STAFF_PASSWORD}</p>
         </div>
       </div>
     </div>
