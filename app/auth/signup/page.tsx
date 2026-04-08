@@ -1,17 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { useAuth } from '@/lib/auth-context'
+import { getSafeRedirectPath } from '@/lib/auth'
 import { Spinner } from '@/components/ui/spinner'
 import { SITE_NAME } from '@/lib/site'
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const router = useRouter()
-  const { signup, isAuthenticated, isLoading: authLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const { signup, isAuthenticated, canAccessBackoffice, isLoading: authLoading } = useAuth()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -21,13 +23,44 @@ export default function SignUpPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const redirectTo = getSafeRedirectPath(searchParams.get('redirectTo'))
+  const reason = searchParams.get('reason')
+  const isCheckoutRedirect = reason === 'checkout'
+  const isProductRedirect = redirectTo?.startsWith('/products/') ?? false
+  const authQuery = new URLSearchParams()
+
+  if (redirectTo) {
+    authQuery.set('redirectTo', redirectTo)
+  }
+
+  if (reason) {
+    authQuery.set('reason', reason)
+  }
+
+  const signinHref = authQuery.toString()
+    ? `/auth/signin?${authQuery.toString()}`
+    : '/auth/signin'
+  const contextEyebrow = isCheckoutRedirect
+    ? 'Secure Checkout'
+    : isProductRedirect
+      ? 'Member Purchase'
+      : 'Create Your Account'
+  const contextMessage = isCheckoutRedirect
+    ? 'Create your account to continue to checkout and place your order.'
+    : isProductRedirect
+      ? 'Create your account to add this fragrance to your cart and continue shopping.'
+      : null
 
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      router.push('/shop')
+      if (canAccessBackoffice) {
+        router.push('/admin/dashboard')
+      } else {
+        router.push(redirectTo || '/shop')
+      }
     }
-  }, [isAuthenticated, authLoading, router])
+  }, [isAuthenticated, authLoading, canAccessBackoffice, redirectTo, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -64,29 +97,41 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="flex items-center justify-center py-20 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-8">
+      <div className="px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-md">
+          <div className="rounded-[30px] border border-border/70 bg-gradient-to-br from-card via-background to-muted/45 px-6 py-8 shadow-[0_28px_70px_rgba(88,72,58,0.09)] sm:px-8 sm:py-10">
           {/* Header */}
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground/45">
+              {contextEyebrow}
+            </p>
             <h1 className="font-serif text-4xl text-foreground">
               Create Account
             </h1>
-            <p className="text-foreground/60">
+            <p className="text-sm leading-6 text-foreground/60">
               Join {SITE_NAME} and discover your perfect scent
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-4">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
+          {contextMessage && (
+            <div className="mt-8 rounded-2xl border border-border/70 bg-background/70 p-5">
+              <p className="text-sm leading-6 text-foreground/70">
+                {contextMessage}
+              </p>
+            </div>
+          )}
+
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-2">
                   First Name
                 </label>
@@ -102,7 +147,7 @@ export default function SignUpPage() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-2">
                   Last Name
                 </label>
@@ -119,7 +164,7 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                 Email Address
               </label>
@@ -135,7 +180,7 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                 Password
               </label>
@@ -151,7 +196,7 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
                 Confirm Password
               </label>
@@ -188,7 +233,7 @@ export default function SignUpPage() {
             <Button
               type="submit"
               disabled={loading || authLoading}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground flex items-center justify-center gap-2"
+              className="mt-2 h-12 w-full bg-accent hover:bg-accent/90 text-accent-foreground flex items-center justify-center gap-2"
               size="lg"
             >
               {loading && <Spinner className="w-4 h-4" />}
@@ -197,14 +242,37 @@ export default function SignUpPage() {
           </form>
 
           {/* Sign In Link */}
-          <p className="text-center text-foreground/60">
+          <p className="mt-8 text-center text-foreground/60">
             Already have an account?{' '}
-            <Link href="/auth/signin" className="text-accent hover:underline font-medium">
+            <Link href={signinHref} className="text-accent hover:underline font-medium">
               Sign in
             </Link>
           </p>
         </div>
+        </div>
       </div>
     </div>
+  )
+}
+
+function SignUpPageFallback() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+        <div className="flex items-center gap-3 text-foreground/70">
+          <Spinner className="h-5 w-5" />
+          <p>Loading sign-up...</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<SignUpPageFallback />}>
+      <SignUpPageContent />
+    </Suspense>
   )
 }

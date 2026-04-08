@@ -8,6 +8,29 @@ export interface AuthUser {
 }
 
 /**
+ * Allow only internal app redirects such as "/checkout".
+ */
+export function getSafeRedirectPath(value: string | null | undefined): string | null {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) {
+    return null
+  }
+
+  return value
+}
+
+export function getRoleLabel(role: UserRole | null | undefined): string {
+  if (role === 'ADMIN') {
+    return 'Admin'
+  }
+
+  if (role === 'STAFF') {
+    return 'Staff'
+  }
+
+  return 'Customer'
+}
+
+/**
  * Get auth user from localStorage
  */
 export function getAuthUser(): AuthUser | null {

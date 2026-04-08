@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
 import { AdminSidebar } from '@/components/admin-sidebar'
+import { useAuth } from '@/lib/auth-context'
 import { formatPHP } from '@/lib/currency'
 import { ONLINE_ORDER_STATUSES, type OrderStatus, useStore } from '@/lib/store-context'
 import { toast } from '@/hooks/use-toast'
@@ -14,6 +15,7 @@ const ALL_STATUSES = ['All Status', ...ONLINE_ORDER_STATUSES, 'Completed']
 const ALL_CHANNELS = ['All Channels', 'ONLINE', 'POS']
 
 export default function AdminOrdersPage() {
+  const { user } = useAuth()
   const { orders, updateOrderStatus } = useStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All Status')
@@ -38,7 +40,11 @@ export default function AdminOrdersPage() {
   }, [channelFilter, orders, searchQuery, statusFilter])
 
   const handleStatusChange = (orderId: string, nextStatus: string) => {
-    const result = updateOrderStatus(orderId, nextStatus as OrderStatus)
+    const result = updateOrderStatus(
+      orderId,
+      nextStatus as OrderStatus,
+      user?.name || 'Store team',
+    )
 
     toast({
       title: result.ok ? 'Order updated' : 'Unable to update order',
@@ -112,6 +118,7 @@ export default function AdminOrdersPage() {
                       <th className="text-left py-4 px-6 font-medium text-foreground/60">Channel</th>
                       <th className="text-left py-4 px-6 font-medium text-foreground/60">Amount</th>
                       <th className="text-left py-4 px-6 font-medium text-foreground/60">Status</th>
+                      <th className="text-left py-4 px-6 font-medium text-foreground/60">Last Activity</th>
                       <th className="text-left py-4 px-6 font-medium text-foreground/60">Update</th>
                     </tr>
                   </thead>
@@ -140,6 +147,16 @@ export default function AdminOrdersPage() {
                           <span className="inline-flex rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
                             {order.status}
                           </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <p className="text-sm text-foreground">
+                            {order.timeline[order.timeline.length - 1]?.note || 'No activity yet'}
+                          </p>
+                          <p className="text-xs text-foreground/50">
+                            {order.timeline[order.timeline.length - 1]?.createdAt
+                              ? new Date(order.timeline[order.timeline.length - 1].createdAt).toLocaleString()
+                              : 'Not recorded'}
+                          </p>
                         </td>
                         <td className="py-4 px-6">
                           {order.source === 'ONLINE' ? (

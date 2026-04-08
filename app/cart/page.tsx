@@ -5,9 +5,12 @@ import Link from 'next/link'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
+import { useAuth } from '@/lib/auth-context'
 import { formatPHP } from '@/lib/currency'
 import { useStore } from '@/lib/store-context'
 import { toast } from '@/hooks/use-toast'
+
+const CHECKOUT_SIGN_IN_HREF = '/auth/signin?redirectTo=%2Fcheckout&reason=checkout'
 
 export default function CartPage() {
   const {
@@ -19,11 +22,13 @@ export default function CartPage() {
     removeFromCart,
     updateCartQuantity,
   } = useStore()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
 
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
   const tax = subtotal * 0.12
   const shipping = subtotal >= 400 || subtotal === 0 ? 0 : 75
   const total = subtotal + tax + shipping
+  const checkoutHref = isAuthenticated ? '/checkout' : CHECKOUT_SIGN_IN_HREF
   const hasUnavailableItems = cart.some((item) => {
     const record = getInventoryRecord(item.productId)
     const availableStock = getAvailableStock(item.productId)
@@ -194,23 +199,39 @@ export default function CartPage() {
                   </span>
                 </div>
 
-                <Button
-                  size="lg"
-                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mb-3"
-                  asChild
-                >
-                  <Link
-                    href="/checkout"
-                    aria-disabled={hasUnavailableItems}
-                    className={hasUnavailableItems ? 'pointer-events-none opacity-50' : undefined}
+                {authLoading ? (
+                  <Button
+                    size="lg"
+                    className="mb-3 w-full bg-accent text-accent-foreground"
+                    disabled
                   >
-                    Proceed to Checkout
-                  </Link>
-                </Button>
+                    Checking account...
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mb-3"
+                    asChild
+                  >
+                    <Link
+                      href={checkoutHref}
+                      aria-disabled={hasUnavailableItems}
+                      className={hasUnavailableItems ? 'pointer-events-none opacity-50' : undefined}
+                    >
+                      {isAuthenticated ? 'Proceed to Checkout' : 'Sign In to Checkout'}
+                    </Link>
+                  </Button>
+                )}
 
                 {hasUnavailableItems && (
                   <p className="text-xs text-destructive">
                     Remove or adjust unavailable items before continuing to checkout.
+                  </p>
+                )}
+
+                {!authLoading && !isAuthenticated && !hasUnavailableItems && (
+                  <p className="text-xs text-foreground/60">
+                    Sign in to continue to checkout.
                   </p>
                 )}
 

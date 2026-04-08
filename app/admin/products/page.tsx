@@ -85,19 +85,28 @@ export default function AdminProductsPage() {
                   Products
                 </h1>
                 <p className="mt-2 text-sm text-foreground/60">
-                  Manage the catalog your storefront, inventory workspace, and POS terminal all share.
+                  {isAdmin
+                    ? 'Manage the catalog your storefront, inventory workspace, and POS terminal all share.'
+                    : 'Review the live catalog and stock status used by storefront, inventory, and POS.'}
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-[0.2em] text-foreground/45">
                   Signed in as {user?.role === 'STAFF' ? 'staff' : 'admin'}
                 </p>
+                {!isAdmin && (
+                  <p className="mt-2 text-xs text-foreground/55">
+                    Staff can monitor product availability here. Catalog creation and removal are admin-only.
+                  </p>
+                )}
               </div>
 
-              <Button asChild>
-                <Link href="/admin/products/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Product
-                </Link>
-              </Button>
+              {isAdmin ? (
+                <Button asChild>
+                  <Link href="/admin/products/new">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Product
+                  </Link>
+                </Button>
+              ) : null}
             </div>
           </div>
         </div>
@@ -192,15 +201,32 @@ export default function AdminProductsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              disabled
-                              className="rounded-lg p-2 text-foreground/40"
-                              title="Edit is not wired up yet in this demo."
-                              aria-label={`Edit ${product.name}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
+                            {isAdmin ? (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                asChild
+                                className="text-foreground/60 hover:text-foreground"
+                              >
+                                <Link
+                                  href={`/admin/products/${product.id}`}
+                                  aria-label={`Edit ${product.name}`}
+                                  title={`Edit ${product.name}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled
+                                className="rounded-lg p-2 text-foreground/40"
+                                title="Only admins can edit products."
+                                aria-label={`Edit ${product.name}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            )}
                             {isAdmin ? (
                               <button
                                 type="button"

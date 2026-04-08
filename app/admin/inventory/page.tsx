@@ -49,6 +49,7 @@ type InventoryRow = {
   reorderPoint: number
   location: string
   lastUpdated: string
+  lastUpdatedBy?: string
   isArchived: boolean
   archivedAt?: string
   archivedBy?: string
@@ -124,6 +125,7 @@ export default function InventoryPage() {
           reorderPoint: record.reorderPoint,
           location: record.location,
           lastUpdated: record.lastUpdated,
+          lastUpdatedBy: record.lastUpdatedBy,
           isArchived: record.isArchived,
           archivedAt: record.archivedAt,
           archivedBy: record.archivedBy,
@@ -486,7 +488,10 @@ export default function InventoryPage() {
                                   />
                                 </td>
                                 <td className="px-6 py-4 align-top text-foreground/60">
-                                  {formatDateTime(row.lastUpdated)}
+                                  <p>{formatDateTime(row.lastUpdated)}</p>
+                                  <p className="text-xs">
+                                    {row.lastUpdatedBy || 'Store team'}
+                                  </p>
                                 </td>
                                 <td className="px-6 py-4 align-top">
                                   <div className="flex flex-wrap gap-2">

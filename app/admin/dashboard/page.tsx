@@ -47,10 +47,12 @@ const inventoryHealthColors = ['#e888a8', '#f2b5c8', '#9e4c6d']
 export default function AdminDashboard() {
   const { isAdmin, user } = useAuth()
   const { inventory, orders, posTransactions } = useStore()
+  const isStaffView = user?.role === 'STAFF'
   const activeInventory = useMemo(
     () => inventory.filter((item) => !item.isArchived),
     [inventory],
   )
+  const todayKey = new Date().toDateString()
 
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
   const totalTax = orders.reduce((sum, order) => sum + order.tax, 0)
@@ -58,7 +60,29 @@ export default function AdminDashboard() {
     (item) => item.stock > 0 && item.stock <= item.reorderPoint,
   ).length
   const outOfStockCount = activeInventory.filter((item) => item.stock === 0).length
+  const openOnlineOrders = orders.filter(
+    (order) => order.source === 'ONLINE' && order.status !== 'Delivered',
+  ).length
+  const fulfillmentQueueCount = orders.filter(
+    (order) =>
+      order.source === 'ONLINE' &&
+      ['Pending', 'Processing', 'Ready for Dispatch'].includes(order.status),
+  ).length
+  const todayPosTransactions = posTransactions.filter(
+    (transaction) => new Date(transaction.createdAt).toDateString() === todayKey,
+  )
+  const todayPosRevenue = todayPosTransactions.reduce(
+    (sum, transaction) => sum + transaction.total,
+    0,
+  )
   const recentOrders = [...orders]
+    .sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    )
+    .slice(0, 5)
+  const recentOperationalOrders = [...orders]
+    .filter((order) => order.source === 'ONLINE' && order.status !== 'Delivered')
     .sort(
       (left, right) =>
         new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
@@ -74,33 +98,61 @@ export default function AdminDashboard() {
     () => buildInventoryHealthData(activeInventory),
     [activeInventory],
   )
+  const highlightedOrders = isStaffView ? recentOperationalOrders : recentOrders
 
-  const stats = [
-    {
-      label: 'Total Revenue',
-      value: formatPHP(totalRevenue),
-      caption: 'Online plus POS transactions',
-      icon: BarChart3,
-    },
-    {
-      label: 'Orders',
-      value: orders.length.toString(),
-      caption: `${posTransactions.length} POS transaction(s) recorded`,
-      icon: ShoppingCart,
-    },
-    {
-      label: 'Tax Collected',
-      value: formatPHP(totalTax),
-      caption: 'Automatic tax analytics enabled',
-      icon: ReceiptText,
-    },
-    {
-      label: 'Inventory Alerts',
-      value: `${lowStockCount + outOfStockCount}`,
-      caption: `${lowStockCount} low stock, ${outOfStockCount} out of stock`,
-      icon: AlertTriangle,
-    },
-  ]
+  const stats = isStaffView
+    ? [
+        {
+          label: 'Open Online Orders',
+          value: openOnlineOrders.toString(),
+          caption: `${fulfillmentQueueCount} currently need fulfillment`,
+          icon: ShoppingCart,
+        },
+        {
+          label: 'Today POS Sales',
+          value: todayPosTransactions.length.toString(),
+          caption: `${formatPHP(todayPosRevenue)} processed in store today`,
+          icon: ReceiptText,
+        },
+        {
+          label: 'Low Stock Alerts',
+          value: lowStockCount.toString(),
+          caption: `${outOfStockCount} items are fully out of stock`,
+          icon: AlertTriangle,
+        },
+        {
+          label: 'Active Inventory',
+          value: activeInventory.length.toString(),
+          caption: 'Shared across storefront and POS availability',
+          icon: Boxes,
+        },
+      ]
+    : [
+        {
+          label: 'Total Revenue',
+          value: formatPHP(totalRevenue),
+          caption: 'Online plus POS transactions',
+          icon: BarChart3,
+        },
+        {
+          label: 'Orders',
+          value: orders.length.toString(),
+          caption: `${posTransactions.length} POS transaction(s) recorded`,
+          icon: ShoppingCart,
+        },
+        {
+          label: 'Tax Collected',
+          value: formatPHP(totalTax),
+          caption: 'Automatic tax analytics enabled',
+          icon: ReceiptText,
+        },
+        {
+          label: 'Inventory Alerts',
+          value: `${lowStockCount + outOfStockCount}`,
+          caption: `${lowStockCount} low stock, ${outOfStockCount} out of stock`,
+          icon: AlertTriangle,
+        },
+      ]
 
   return (
     <ProtectedRoute requiredRole={['ADMIN', 'STAFF']}>
@@ -112,13 +164,15 @@ export default function AdminDashboard() {
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <p className="text-sm uppercase tracking-[0.2em] text-foreground/50">
-                    {user?.role === 'STAFF' ? 'Staff Operations' : 'Store Intelligence'}
+                    {isStaffView ? 'Staff Operations' : 'Store Intelligence'}
                   </p>
                   <h1 className="font-serif text-3xl text-foreground">
-                    Dashboard
+                    {isStaffView ? 'Operations Dashboard' : 'Dashboard'}
                   </h1>
                   <p className="mt-2 text-sm text-foreground/60">
-                    Real-time inventory, transaction, and availability tracking from the same store dataset.
+                    {isStaffView
+                      ? 'Today’s fulfillment queue, low-stock items, and in-store activity from the shared store dataset.'
+                      : 'Real-time inventory, transaction, and availability tracking from the same store dataset.'}
                   </p>
                 </div>
 
@@ -127,7 +181,9 @@ export default function AdminDashboard() {
                     <Link href="/admin/pos">Open POS</Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link href="/admin/inventory">Review Inventory</Link>
+                    <Link href={isStaffView ? '/admin/orders' : '/admin/inventory'}>
+                      {isStaffView ? 'Review Orders' : 'Review Inventory'}
+                    </Link>
                   </Button>
                   {isAdmin && (
                     <Button variant="outline" asChild>
@@ -161,7 +217,9 @@ export default function AdminDashboard() {
                 <div className="mb-6">
                   <h2 className="font-serif text-2xl text-foreground">7-Day Sales Trend</h2>
                   <p className="mt-2 text-sm text-foreground/60">
-                    Daily revenue split between online orders and POS transactions.
+                    {isStaffView
+                      ? 'Daily activity split between online orders and POS transactions.'
+                      : 'Daily revenue split between online orders and POS transactions.'}
                   </p>
                 </div>
 
@@ -214,9 +272,13 @@ export default function AdminDashboard() {
 
               <section className="rounded-2xl border border-border bg-card p-6">
                 <div className="mb-6">
-                  <h2 className="font-serif text-2xl text-foreground">Sales Mix</h2>
+                  <h2 className="font-serif text-2xl text-foreground">
+                    {isStaffView ? 'Channel Activity' : 'Sales Mix'}
+                  </h2>
                   <p className="mt-2 text-sm text-foreground/60">
-                    Quick view of where revenue is coming from right now.
+                    {isStaffView
+                      ? 'Quick view of how the store is moving across online and POS.'
+                      : 'Quick view of where revenue is coming from right now.'}
                   </p>
                 </div>
 
@@ -288,33 +350,43 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-8">
               <section className="rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-serif text-2xl text-foreground">Recent Orders</h2>
+                  <h2 className="font-serif text-2xl text-foreground">
+                    {isStaffView ? 'Orders Requiring Attention' : 'Recent Orders'}
+                  </h2>
                   <Button variant="ghost" size="sm" asChild>
                     <Link href="/admin/orders">View all</Link>
                   </Button>
                 </div>
 
                 <div className="space-y-3">
-                  {recentOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex flex-col gap-3 rounded-xl border border-border bg-background/70 p-4 md:flex-row md:items-center md:justify-between"
-                    >
-                      <div>
-                        <p className="font-medium text-foreground">{order.id}</p>
-                        <p className="text-sm text-foreground/60">{order.customerName}</p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-foreground/70">
-                          {order.source}
-                        </span>
-                        <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
-                          {order.status}
-                        </span>
-                        <span className="font-medium text-foreground">{formatPHP(order.total)}</span>
-                      </div>
+                  {highlightedOrders.length === 0 ? (
+                    <div className="rounded-xl border border-border bg-background/70 p-4 text-sm text-foreground/60">
+                      {isStaffView
+                        ? 'No online orders currently need staff attention.'
+                        : 'No recent orders are available yet.'}
                     </div>
-                  ))}
+                  ) : (
+                    highlightedOrders.map((order) => (
+                      <div
+                        key={order.id}
+                        className="flex flex-col gap-3 rounded-xl border border-border bg-background/70 p-4 md:flex-row md:items-center md:justify-between"
+                      >
+                        <div>
+                          <p className="font-medium text-foreground">{order.id}</p>
+                          <p className="text-sm text-foreground/60">{order.customerName}</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-foreground/70">
+                            {order.source}
+                          </span>
+                          <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
+                            {order.status}
+                          </span>
+                          <span className="font-medium text-foreground">{formatPHP(order.total)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </section>
 
