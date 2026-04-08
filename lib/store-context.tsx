@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react'
 import { ADMIN_PRODUCTS_STORAGE_KEY, getStoredAdminProducts } from '@/lib/admin-products'
+import { getAuthUser } from '@/lib/auth'
 import type { Product } from '@/lib/products'
 import { products } from '@/lib/products'
 import { DEMO_USER_EMAIL } from '@/lib/site'
@@ -90,6 +91,7 @@ export interface InventoryRecord {
   reorderPoint: number
   location: string
   lastUpdated: string
+  lastUpdatedBy?: string
   isArchived: boolean
   archivedAt?: string
   archivedBy?: string
@@ -172,6 +174,14 @@ export interface AddCatalogProductOptions {
   initialStock: number
   reorderPoint?: number
   location?: string
+  actor?: string
+}
+
+export interface UpdateCatalogProductOptions {
+  stock: number
+  reorderPoint?: number
+  location?: string
+  actor?: string
 }
 
 export interface UpdateInventoryInput {
@@ -223,6 +233,11 @@ interface StoreContextType extends StoreState {
     product: Product,
     options?: AddCatalogProductOptions,
   ) => StoreActionResult<Product>
+  updateCatalogProduct: (
+    productId: string,
+    product: Product,
+    options: UpdateCatalogProductOptions,
+  ) => StoreActionResult<Product>
   removeCatalogProduct: (productId: string) => StoreActionResult
   updateInventory: (input: UpdateInventoryInput) => StoreActionResult<InventoryRecord>
   adjustInventory: (input: AdjustInventoryInput) => StoreActionResult<InventoryRecord>
@@ -247,6 +262,7 @@ interface StoreContextType extends StoreState {
   updateOrderStatus: (
     orderId: string,
     status: OrderStatus,
+    actor?: string,
     note?: string,
   ) => StoreActionResult<OrderRecord>
   getProductById: (productId: string) => Product | undefined
@@ -332,6 +348,7 @@ function createInventoryRecord(
     reorderPoint: clampToWholeNumber(reorderPoint),
     location,
     lastUpdated: new Date().toISOString(),
+    lastUpdatedBy: undefined,
     isArchived: false,
   }
 }
@@ -358,6 +375,7 @@ function ensureInventoryRecords(
       stock: clampToWholeNumber(existing.stock),
       reorderPoint: clampToWholeNumber(existing.reorderPoint || 0),
       lastUpdated: existing.lastUpdated || new Date().toISOString(),
+      lastUpdatedBy: existing.lastUpdatedBy,
       isArchived: existing.isArchived ?? false,
       archivedAt: existing.isArchived ? existing.archivedAt : undefined,
       archivedBy: existing.isArchived ? existing.archivedBy : undefined,
@@ -855,6 +873,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     options,
   ) => {
     const currentState = stateRef.current
+    const authUser = getAuthUser()
+
+    if (!authUser || authUser.role !== 'ADMIN') {
+      return {
+        ok: false,
+        message: 'Only admins can add products to the catalog.',
+      }
+    }
 
     if (currentState.catalog.some((item) => item.id === product.id)) {
       return {
@@ -872,6 +898,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         reorderPoint: clampToWholeNumber(options?.reorderPoint ?? 3),
         location: options?.location || DEFAULT_LOCATIONS[0],
         lastUpdated: new Date().toISOString(),
+        lastUpdatedBy: options?.actor || authUser.name,
         isArchived: false,
       },
       ...currentState.inventory,
@@ -890,11 +917,107 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateCatalogProduct: StoreContextType['updateCatalogProduct'] = (
+    productId,
+    product,
+    options,
+  ) => {
+    const currentState = stateRef.current
+    const authUser = getAuthUser()
+    const existingProduct = currentState.catalog.find((item) => item.id === productId)
+
+    if (!authUser || authUser.role !== 'ADMIN') {
+      return {
+        ok: false,
+        message: 'Only admins can edit products in the catalog.',
+      }
+    }
+
+    if (!existingProduct) {
+      return {
+        ok: false,
+        message: 'Product not found.',
+      }
+    }
+
+    if (product.id !== productId) {
+      return {
+        ok: false,
+        message: 'Product identifiers cannot be changed.',
+      }
+    }
+
+    const updatedProduct: Product = {
+      ...product,
+      inStock: clampToWholeNumber(options.stock) > 0,
+    }
+    const timestamp = new Date().toISOString()
+    const existingInventoryRecord = currentState.inventory.find(
+      (record) => record.productId === productId,
+    )
+
+    const nextCatalog = currentState.catalog.map((item) =>
+      item.id === productId ? updatedProduct : item,
+    )
+    const updatedInventoryRecord: InventoryRecord =
+      existingInventoryRecord
+        ? {
+            ...existingInventoryRecord,
+            stock: clampToWholeNumber(options.stock),
+            reorderPoint:
+              typeof options.reorderPoint === 'number'
+                ? clampToWholeNumber(options.reorderPoint)
+                : existingInventoryRecord.reorderPoint,
+            location: options.location || existingInventoryRecord.location,
+            lastUpdated: timestamp,
+            lastUpdatedBy: options.actor || authUser.name,
+          }
+        : {
+            productId,
+            sku: createSku(updatedProduct, 0),
+            stock: clampToWholeNumber(options.stock),
+            reorderPoint: clampToWholeNumber(options.reorderPoint ?? 3),
+            location: options.location || DEFAULT_LOCATIONS[0],
+            lastUpdated: timestamp,
+            lastUpdatedBy: options.actor || authUser.name,
+            isArchived: false,
+          }
+
+    const nextInventory = existingInventoryRecord
+      ? currentState.inventory.map((record) =>
+          record.productId === productId ? updatedInventoryRecord : record,
+        )
+      : ensureInventoryRecords(nextCatalog, [
+          updatedInventoryRecord,
+          ...currentState.inventory,
+        ])
+
+    commitState({
+      ...currentState,
+      catalog: syncCatalogStock(nextCatalog, nextInventory),
+      inventory: nextInventory,
+    })
+
+    return {
+      ok: true,
+      message: `${updatedProduct.name} was updated successfully.`,
+      data: updatedProduct,
+    }
+  }
+
   const removeCatalogProduct: StoreContextType['removeCatalogProduct'] = (
     productId,
   ) => {
     const currentState = stateRef.current
+    const authUser = getAuthUser()
     const product = currentState.catalog.find((item) => item.id === productId)
+
+    if (!authUser || authUser.role !== 'ADMIN') {
+      return {
+        ok: false,
+        message: 'Only admins can remove products from the catalog.',
+      }
+    }
 
     if (!product) {
       return {
@@ -961,6 +1084,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           : existingRecord.reorderPoint,
       location: input.location || existingRecord.location,
       lastUpdated: new Date().toISOString(),
+      lastUpdatedBy: input.actor,
     }
 
     const nextInventory = currentState.inventory.map((record) =>
@@ -1048,6 +1172,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       stock: nextStock,
       location: input.location || existingRecord.location,
       lastUpdated: timestamp,
+      lastUpdatedBy: input.actor,
     }
 
     const nextInventory = currentState.inventory.map((record) =>
@@ -1126,6 +1251,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       archivedAt: timestamp,
       archivedBy: input.actor,
       lastUpdated: timestamp,
+      lastUpdatedBy: input.actor,
     }
 
     const nextInventory = currentState.inventory.map((record) =>
@@ -1183,6 +1309,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       archivedAt: undefined,
       archivedBy: undefined,
       lastUpdated: new Date().toISOString(),
+      lastUpdatedBy: input.actor,
     }
 
     const nextInventory = currentState.inventory.map((record) =>
@@ -1208,6 +1335,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const record = currentState.inventory.find(
       (inventoryItem) => inventoryItem.productId === item.productId,
     )
+    const authUser = getAuthUser()
+
+    if (!authUser || authUser.role !== 'USER') {
+      return {
+        ok: false,
+        message: 'Sign in or create an account before adding items to your cart.',
+      }
+    }
 
     if (!product) {
       return {
@@ -1624,6 +1759,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const updateOrderStatus: StoreContextType['updateOrderStatus'] = (
     orderId,
     status,
+    actor,
     note,
   ) => {
     const currentState = stateRef.current
@@ -1648,8 +1784,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           note:
             note ||
             (status === 'Delivered'
-              ? 'Order delivered successfully.'
-              : `Order moved to ${status}.`),
+              ? `Order delivered successfully by ${actor || 'Store team'}.`
+              : `Order moved to ${status} by ${actor || 'Store team'}.`),
         },
       ],
     }
@@ -1678,6 +1814,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...state,
       cartCount,
       addCatalogProduct,
+      updateCatalogProduct,
       removeCatalogProduct,
       updateInventory,
       adjustInventory,

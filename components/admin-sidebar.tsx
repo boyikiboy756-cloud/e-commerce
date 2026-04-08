@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth, type UserRole } from '@/lib/auth-context'
+import { getRoleLabel } from '@/lib/auth'
 
 const adminMenuItems: Array<{
   href: string
@@ -36,6 +37,7 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { logout, user } = useAuth()
+  const roleLabel = getRoleLabel(user?.role)
   const visibleItems = adminMenuItems.filter((item) =>
     user ? item.roles.includes(user.role) : false,
   )
@@ -45,13 +47,18 @@ export function AdminSidebar() {
       {/* Sidebar Header */}
       <div className="border-b border-sidebar-border bg-[linear-gradient(145deg,rgba(255,240,246,0.96),rgba(255,251,253,0.9))] p-6">
         <span className="inline-flex rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-          Back Office
+          {user?.role === 'STAFF' ? 'Operations Console' : 'Admin Control'}
         </span>
         <h2 className="mt-4 font-serif text-xl text-sidebar-foreground">
-          {user?.role === 'STAFF' ? 'Pink Operations' : 'Pink Admin Suite'}
+          {user?.role === 'STAFF' ? 'Staff Operations' : 'Admin Control Center'}
         </h2>
-        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-sidebar-foreground/50">
-          {user?.role ?? 'Guest'}
+        <p className="mt-2 text-sm text-sidebar-foreground/60">
+          {user?.role === 'STAFF'
+            ? 'Orders, inventory, and in-store sales for daily store operations.'
+            : 'Catalog, reporting, promotions, and business controls.'}
+        </p>
+        <p className="mt-3 text-xs uppercase tracking-[0.2em] text-sidebar-foreground/50">
+          {roleLabel}
         </p>
       </div>
 

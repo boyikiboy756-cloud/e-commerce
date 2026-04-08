@@ -2,19 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Check, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
+import { Spinner } from '@/components/ui/spinner'
 import { formatPHP } from '@/lib/currency'
 import { ONLINE_PAYMENT_METHODS, useStore } from '@/lib/store-context'
 import { useAuth } from '@/lib/auth-context'
 import { toast } from '@/hooks/use-toast'
 
 const STEPS = ['Shipping', 'Payment', 'Review']
+const CHECKOUT_SIGN_IN_HREF = '/auth/signin?redirectTo=%2Fcheckout&reason=checkout'
 
 export default function CheckoutPage() {
+  const router = useRouter()
   const { cart, getAvailableStock, getInventoryRecord, getProductById, placeOnlineOrder } = useStore()
-  const { user } = useAuth()
+  const { user, isAuthenticated, canAccessBackoffice, isLoading: authLoading } = useAuth()
   const [step, setStep] = useState(0)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
@@ -34,6 +38,21 @@ export default function CheckoutPage() {
   })
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!isAuthenticated) {
+      router.replace(CHECKOUT_SIGN_IN_HREF)
+      return
+    }
+
+    if (!user || user.role !== 'USER') {
+      router.replace(canAccessBackoffice ? '/admin/dashboard' : '/')
+    }
+  }, [authLoading, canAccessBackoffice, isAuthenticated, router, user])
+
+  useEffect(() => {
     if (!user) {
       return
     }
@@ -43,7 +62,7 @@ export default function CheckoutPage() {
       ...current,
       firstName: current.firstName || firstName,
       lastName: current.lastName || rest.join(' '),
-      email: current.email || user.email,
+      email: user.email,
     }))
   }, [user])
 
@@ -83,6 +102,16 @@ export default function CheckoutPage() {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
 
+    if (!user) {
+      toast({
+        title: 'Sign-in required',
+        description: 'Sign in before completing your purchase.',
+        variant: 'destructive',
+      })
+      router.replace(CHECKOUT_SIGN_IN_HREF)
+      return
+    }
+
     if (step < STEPS.length - 1) {
       setStep((current) => current + 1)
       return
@@ -91,7 +120,7 @@ export default function CheckoutPage() {
     const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} ${formData.zip}, ${formData.country}`
     const fullName = `${formData.firstName} ${formData.lastName}`.trim()
     const result = placeOnlineOrder({
-      customerEmail: formData.email,
+      customerEmail: user.email,
       customerName: fullName,
       notes: [formData.reference, formData.notes].filter(Boolean).join(' | '),
       paymentMethod: formData.paymentMethod as (typeof ONLINE_PAYMENT_METHODS)[number],
@@ -113,6 +142,20 @@ export default function CheckoutPage() {
       title: 'Order placed',
       description: `${result.data.id} is now in processing.`,
     })
+  }
+
+  if (authLoading || !isAuthenticated || !user || user.role !== 'USER') {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+          <div className="flex items-center gap-3 text-foreground/70">
+            <Spinner className="h-5 w-5" />
+            <p>{authLoading ? 'Checking your account...' : 'Redirecting to sign in...'}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (cart.length === 0 && !orderPlaced) {
@@ -228,10 +271,13 @@ export default function CheckoutPage() {
                     name="email"
                     placeholder="Email"
                     value={formData.email}
-                    onChange={handleChange}
                     required
+                    readOnly
                     className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
                   />
+                  <p className="text-sm text-foreground/60">
+                    Your order confirmation will be sent to your signed-in email.
+                  </p>
 
                   <input
                     type="text"

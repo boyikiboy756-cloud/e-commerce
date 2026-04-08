@@ -1,8 +1,7 @@
 'use client'
 
-import { type ChangeEvent, type FormEvent, useState } from 'react'
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   ImagePlus,
@@ -18,23 +17,29 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from '@/hooks/use-toast'
-import { useAuth } from '@/lib/auth-context'
-import {
-  PRODUCT_CATEGORIES,
-  createProductFromForm,
-  initialProductFormValues,
-  type ProductFormValues,
-} from '@/lib/admin-products'
+import { PRODUCT_CATEGORIES, type ProductFormValues } from '@/lib/admin-products'
+import { type UserRole } from '@/lib/auth-context'
 import { formatPHP } from '@/lib/currency'
 import { SITE_NAME } from '@/lib/site'
-import { useStore } from '@/lib/store-context'
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024
 const MAX_IMAGE_DIMENSION = 1400
 
 type FormErrors = Partial<Record<keyof ProductFormValues, string>>
+
+interface AdminProductEditorProps {
+  backHref: string
+  backLabel: string
+  cancelHref: string
+  description: string
+  initialValues: ProductFormValues
+  signedInName: string
+  signedInRole: UserRole | undefined
+  submitLabel: string
+  title: string
+  onSubmit: (values: ProductFormValues) => Promise<void>
+}
 
 function resizeToFit(width: number, height: number) {
   const largestSide = Math.max(width, height)
@@ -147,19 +152,29 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs text-destructive">{message}</p>
 }
 
-export default function NewProductPage() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const { addCatalogProduct } = useStore()
-  const [formValues, setFormValues] = useState<ProductFormValues>(
-    initialProductFormValues,
-  )
+export function AdminProductEditor({
+  backHref,
+  backLabel,
+  cancelHref,
+  description,
+  initialValues,
+  signedInName,
+  signedInRole,
+  submitLabel,
+  title,
+  onSubmit,
+}: AdminProductEditorProps) {
+  const [formValues, setFormValues] = useState<ProductFormValues>(initialValues)
   const [errors, setErrors] = useState<FormErrors>({})
   const [isPreparingImage, setIsPreparingImage] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const previewImage =
-    formValues.uploadedImage.trim() || '/placeholder.jpg'
+  useEffect(() => {
+    setFormValues(initialValues)
+    setErrors({})
+  }, [initialValues])
+
+  const previewImage = formValues.uploadedImage.trim() || '/placeholder.jpg'
   const previewPrice = Number(formValues.price)
   const previewStock = Math.max(0, Math.round(Number(formValues.stockQuantity) || 0))
   const previewReorderPoint = Math.max(
@@ -206,11 +221,6 @@ export default function NewProductPage() {
         ...current,
         uploadedImage: 'Use a JPG, PNG, or WebP image.',
       }))
-      toast({
-        title: 'Unsupported image format',
-        description: 'Upload a JPG, PNG, or WebP photo for the product.',
-        variant: 'destructive',
-      })
       event.target.value = ''
       return
     }
@@ -220,11 +230,6 @@ export default function NewProductPage() {
         ...current,
         uploadedImage: 'Image must be 5 MB or smaller.',
       }))
-      toast({
-        title: 'Image is too large',
-        description: 'Choose a file that is 5 MB or smaller.',
-        variant: 'destructive',
-      })
       event.target.value = ''
       return
     }
@@ -242,11 +247,6 @@ export default function NewProductPage() {
         ...current,
         uploadedImage: undefined,
       }))
-
-      toast({
-        title: 'Photo ready',
-        description: 'The product image was optimized and attached to the form.',
-      })
     } catch (error) {
       const message =
         error instanceof Error
@@ -257,11 +257,6 @@ export default function NewProductPage() {
         ...current,
         uploadedImage: message,
       }))
-      toast({
-        title: 'Unable to upload image',
-        description: message,
-        variant: 'destructive',
-      })
     } finally {
       setIsPreparingImage(false)
       event.target.value = ''
@@ -279,36 +274,13 @@ export default function NewProductPage() {
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
-      toast({
-        title: 'Check the product details',
-        description: 'Fill in the required fields before saving the product.',
-        variant: 'destructive',
-      })
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      const product = createProductFromForm(normalizedValues)
-      const result = addCatalogProduct(product, {
-        initialStock: Number(normalizedValues.stockQuantity),
-        reorderPoint: Number(normalizedValues.reorderPoint),
-        location: normalizedValues.storageLocation.trim(),
-        actor: user?.name || 'Store admin',
-      })
-
-      toast({
-        title: result.ok ? 'Product added' : 'Unable to add product',
-        description: result.message,
-        variant: result.ok ? 'default' : 'destructive',
-      })
-
-      if (!result.ok) {
-        return
-      }
-
-      router.push('/admin/products')
+      await onSubmit(normalizedValues)
     } finally {
       setIsSubmitting(false)
     }
@@ -324,9 +296,9 @@ export default function NewProductPage() {
             <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
               <div className="mb-4 flex items-center gap-4">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/admin/products" className="flex items-center gap-2">
+                  <Link href={backHref} className="flex items-center gap-2">
                     <ArrowLeft className="h-4 w-4" />
-                    Back to Products
+                    {backLabel}
                   </Link>
                 </Button>
               </div>
@@ -337,21 +309,19 @@ export default function NewProductPage() {
                     Catalog Studio
                   </span>
                   <h1 className="mt-4 font-serif text-3xl text-foreground">
-                    Add a New Product
+                    {title}
                   </h1>
                   <p className="mt-2 max-w-3xl text-sm text-foreground/60">
-                    Admins can add new fragrances here. Upload a product photo,
-                    define the scent profile, and the storefront, inventory,
-                    and POS catalog will update together.
+                    {description}
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-border bg-background/80 px-4 py-3 text-sm text-foreground/70">
                   <p className="font-medium text-foreground">
-                    Signed in as {user?.role === 'STAFF' ? 'staff' : 'admin'}
+                    Signed in as {signedInRole === 'STAFF' ? 'staff' : 'admin'}
                   </p>
                   <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/45">
-                    {user?.name || `${SITE_NAME} Team`}
+                    {signedInName || `${SITE_NAME} Team`}
                   </p>
                 </div>
               </div>
@@ -477,93 +447,6 @@ export default function NewProductPage() {
                 <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
                   <div className="mb-6">
                     <h2 className="font-serif text-2xl text-foreground">
-                      Product Photo
-                    </h2>
-                    <p className="mt-2 text-sm text-foreground/60">
-                      Upload a clean bottle image for the product. Uploaded photos
-                      are optimized for this demo and saved with the product in
-                      browser storage.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-                    <div className="space-y-5">
-                      <div className="grid gap-3">
-                        <Label htmlFor="product-photo">Upload Product Photo</Label>
-                        <label
-                          htmlFor="product-photo"
-                          className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-6 py-8 text-center transition-colors hover:border-primary/45 hover:bg-primary/8"
-                        >
-                          {isPreparingImage ? (
-                            <>
-                              <Loader2 className="mb-4 h-8 w-8 animate-spin text-primary" />
-                              <p className="font-medium text-foreground">
-                                Preparing image...
-                              </p>
-                              <p className="mt-2 text-sm text-foreground/60">
-                                Optimizing the photo for faster loading.
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <div className="mb-4 rounded-full bg-white p-3 text-primary shadow-sm">
-                                <Upload className="h-6 w-6" />
-                              </div>
-                              <p className="font-medium text-foreground">
-                                Click to upload a product image
-                              </p>
-                              <p className="mt-2 max-w-sm text-sm text-foreground/60">
-                                Use JPG, PNG, or WebP up to 5 MB. We compress it
-                                automatically so catalog pages stay fast.
-                              </p>
-                            </>
-                          )}
-                        </label>
-                        <input
-                          id="product-photo"
-                          type="file"
-                          accept={ACCEPTED_IMAGE_TYPES.join(',')}
-                          onChange={handleImageUpload}
-                          className="sr-only"
-                        />
-                        <FieldError message={errors.uploadedImage} />
-                      </div>
-
-                      {formValues.uploadedImage ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() => updateField('uploadedImage', '')}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Remove Uploaded Photo
-                        </Button>
-                      ) : null}
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-background/80 p-5">
-                      <p className="text-sm font-medium text-foreground">
-                        Best Photo Perspective
-                      </p>
-                      <div className="mt-4 space-y-3 text-sm text-foreground/70">
-                        <p>Front-facing or front three-quarter bottle angle.</p>
-                        <p>Eye-level camera with the full bottle and cap visible.</p>
-                        <p>Clean cream, white, or soft neutral background.</p>
-                        <p>Soft studio light with a gentle shadow, not harsh flash.</p>
-                      </div>
-                      <div className="mt-5 rounded-2xl bg-primary/8 p-4 text-xs leading-6 text-foreground/70">
-                        This angle looks the most professional on collection cards,
-                        product pages, and admin previews because the label stays easy
-                        to read.
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-                  <div className="mb-6">
-                    <h2 className="font-serif text-2xl text-foreground">
                       Fragrance Details
                     </h2>
                     <p className="mt-2 text-sm text-foreground/60">
@@ -652,14 +535,14 @@ export default function NewProductPage() {
                       Inventory and Merchandising
                     </h2>
                     <p className="mt-2 text-sm text-foreground/60">
-                      The starting stock here becomes the live inventory record used by
+                      The stock values here become the live inventory record used by
                       the storefront and POS.
                     </p>
                   </div>
 
                   <div className="grid gap-5 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="stockQuantity">Starting Stock</Label>
+                      <Label htmlFor="stockQuantity">Stock Quantity</Label>
                       <Input
                         id="stockQuantity"
                         type="number"
@@ -743,7 +626,7 @@ export default function NewProductPage() {
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                   <Button variant="outline" asChild>
-                    <Link href="/admin/products">Cancel</Link>
+                    <Link href={cancelHref}>Cancel</Link>
                   </Button>
                   <Button
                     type="submit"
@@ -755,7 +638,7 @@ export default function NewProductPage() {
                     ) : (
                       <Save className="h-4 w-4" />
                     )}
-                    Save Product
+                    {submitLabel}
                   </Button>
                 </div>
               </form>

@@ -1,11 +1,13 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { use, useEffect, useState } from 'react'
 import { Heart, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { ProductCard } from '@/components/product-card'
+import { useAuth } from '@/lib/auth-context'
 import { formatPHP } from '@/lib/currency'
 import { useStore } from '@/lib/store-context'
 import { toast } from '@/hooks/use-toast'
@@ -23,6 +25,7 @@ export default function ProductPage({
     getInventoryRecord,
     getProductById,
   } = useStore()
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const product = getProductById(id)
   const inventoryRecord = getInventoryRecord(id)
   const isArchived = inventoryRecord?.isArchived ?? false
@@ -69,6 +72,9 @@ export default function ProductPage({
       : availability === 'Low Stock'
         ? 'bg-amber-100 text-amber-700'
         : 'bg-red-100 text-red-700'
+  const canShop = isAuthenticated && user?.role === 'USER'
+  const authRedirectHref = `/auth/signin?redirectTo=${encodeURIComponent(`/products/${product.id}`)}`
+  const registerRedirectHref = `/auth/signup?redirectTo=${encodeURIComponent(`/products/${product.id}`)}`
 
   const handleAddToCart = () => {
     const result = addToCart({
@@ -219,20 +225,64 @@ export default function ProductPage({
                 {formatPHP(selectedSize.price * quantity)}
               </div>
 
-              <div className="flex gap-4">
-                <Button
-                  size="lg"
-                  className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
-                  onClick={handleAddToCart}
-                  disabled={availableStock === 0 || isArchived}
-                >
-                  <ShoppingBag className="w-5 h-5 mr-2" />
-                  {isArchived ? 'Archived' : availableStock === 0 ? 'Out of Stock' : 'Add to Cart'}
-                </Button>
-                <Button size="lg" variant="outline" className="px-6">
-                  <Heart className="w-5 h-5" />
-                </Button>
-              </div>
+              {canShop ? (
+                <div className="flex gap-4">
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+                    onClick={handleAddToCart}
+                    disabled={availableStock === 0 || isArchived}
+                  >
+                    <ShoppingBag className="w-5 h-5 mr-2" />
+                    {isArchived ? 'Archived' : availableStock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                  </Button>
+                  <Button size="lg" variant="outline" className="px-6">
+                    <Heart className="w-5 h-5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-[28px] border border-border/70 bg-gradient-to-br from-card via-background to-muted/50 shadow-[0_24px_60px_rgba(88,72,58,0.08)]">
+                  <div className="border-b border-border/60 px-6 py-4 sm:px-7">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground/45">
+                      Member Checkout
+                    </p>
+                  </div>
+                  <div className="space-y-5 px-6 py-6 sm:px-7 sm:py-7">
+                    <div className="space-y-2">
+                      <h2 className="font-serif text-3xl text-foreground">
+                        Sign in to purchase
+                      </h2>
+                      <p className="max-w-md text-sm leading-6 text-foreground/65">
+                        Create an account or sign in to add this fragrance to your cart and continue to checkout.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                    {authLoading ? (
+                      <>
+                        <Button className="h-12 sm:flex-1" disabled>
+                          Checking account...
+                        </Button>
+                        <Button variant="outline" className="h-12 sm:flex-1" disabled>
+                          Create Account
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button className="h-12 sm:flex-1" asChild>
+                          <Link href={authRedirectHref}>Sign In</Link>
+                        </Button>
+                        <Button variant="outline" className="h-12 sm:flex-1 border-border/80 bg-background/70" asChild>
+                          <Link href={registerRedirectHref}>Create Account</Link>
+                        </Button>
+                      </>
+                    )}
+                    </div>
+                    <p className="text-xs tracking-[0.16em] text-foreground/45 uppercase">
+                      Fast checkout, order tracking, and saved details.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-border pt-8 space-y-6">

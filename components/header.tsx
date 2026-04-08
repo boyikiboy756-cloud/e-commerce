@@ -167,7 +167,7 @@ export function Header() {
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           <LayoutDashboard className="h-4 w-4" />
-                          {user?.role === 'STAFF' ? 'Operations Dashboard' : 'Admin Dashboard'}
+                          {user?.role === 'STAFF' ? 'Staff Dashboard' : 'Admin Dashboard'}
                         </Link>
                       </Button>
                     ) : (

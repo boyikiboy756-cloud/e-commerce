@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { useAuth } from '@/lib/auth-context'
+import { getSafeRedirectPath } from '@/lib/auth'
 import { Spinner } from '@/components/ui/spinner'
 import {
   ADMIN_EMAIL,
@@ -17,13 +18,41 @@ import {
   STAFF_PASSWORD,
 } from '@/lib/site'
 
-export default function SignInPage() {
+function SignInPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login, isAuthenticated, canAccessBackoffice, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const redirectTo = getSafeRedirectPath(searchParams.get('redirectTo'))
+  const reason = searchParams.get('reason')
+  const isCheckoutRedirect = reason === 'checkout'
+  const isProductRedirect = redirectTo?.startsWith('/products/') ?? false
+  const authQuery = new URLSearchParams()
+
+  if (redirectTo) {
+    authQuery.set('redirectTo', redirectTo)
+  }
+
+  if (reason) {
+    authQuery.set('reason', reason)
+  }
+
+  const signupHref = authQuery.toString()
+    ? `/auth/signup?${authQuery.toString()}`
+    : '/auth/signup'
+  const contextEyebrow = isCheckoutRedirect
+    ? 'Secure Checkout'
+    : isProductRedirect
+      ? 'Member Purchase'
+      : 'Welcome Back'
+  const contextMessage = isCheckoutRedirect
+    ? 'Sign in to continue to checkout and complete your purchase.'
+    : isProductRedirect
+      ? 'Sign in to add this fragrance to your cart and continue shopping.'
+      : null
 
   // Redirect if already logged in
   useEffect(() => {
@@ -31,10 +60,10 @@ export default function SignInPage() {
       if (canAccessBackoffice) {
         router.push('/admin/dashboard')
       } else {
-        router.push('/shop')
+        router.push(redirectTo || '/shop')
       }
     }
-  }, [authLoading, canAccessBackoffice, isAuthenticated, router])
+  }, [authLoading, canAccessBackoffice, isAuthenticated, redirectTo, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,42 +84,56 @@ export default function SignInPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="flex items-center justify-center py-20 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-8">
+      <div className="px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-md">
+          <div className="rounded-[30px] border border-border/70 bg-gradient-to-br from-card via-background to-muted/45 px-6 py-8 shadow-[0_28px_70px_rgba(88,72,58,0.09)] sm:px-8 sm:py-10">
           {/* Header */}
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-foreground/45">
+              {contextEyebrow}
+            </p>
             <h1 className="font-serif text-4xl text-foreground">
               Welcome Back
             </h1>
-            <p className="text-foreground/60">
+            <p className="text-sm leading-6 text-foreground/60">
               Sign in to your {SITE_NAME} account
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-4">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
+          {contextMessage && (
+            <div className="mt-8 rounded-2xl border border-border/70 bg-background/70 p-5">
+              <p className="text-sm leading-6 text-foreground/70">
+                {contextMessage}
+              </p>
+            </div>
+          )}
+
           {/* Demo Info */}
-          <div className="p-4 bg-muted rounded-lg space-y-2">
-            <p className="text-sm font-medium text-foreground">Demo Credentials:</p>
-            <p className="text-xs text-foreground/70">
+          <div className="mt-6 rounded-2xl border border-border/60 bg-background/60 p-4 space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-foreground/40">
+              Demo Access
+            </p>
+            <p className="text-xs text-foreground/60">
               <strong>Admin:</strong> {ADMIN_EMAIL} / {ADMIN_PASSWORD}
             </p>
-            <p className="text-xs text-foreground/70">
+            <p className="text-xs text-foreground/60">
               <strong>Staff:</strong> {STAFF_EMAIL} / {STAFF_PASSWORD}
             </p>
-            <p className="text-xs text-foreground/70">
+            <p className="text-xs text-foreground/60">
               <strong>User:</strong> {DEMO_USER_EMAIL} / {DEMO_USER_PASSWORD}
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+            <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                 Email Address
               </label>
@@ -105,7 +148,7 @@ export default function SignInPage() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                 Password
               </label>
@@ -138,7 +181,7 @@ export default function SignInPage() {
             <Button
               type="submit"
               disabled={loading || authLoading}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground flex items-center justify-center gap-2"
+              className="h-12 w-full bg-accent hover:bg-accent/90 text-accent-foreground flex items-center justify-center gap-2"
             >
               {loading && <Spinner className="w-4 h-4" />}
               {loading ? 'Signing In...' : 'Sign In'}
@@ -146,7 +189,7 @@ export default function SignInPage() {
           </form>
 
           {/* Divider */}
-          <div className="relative">
+          <div className="relative mt-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border" />
             </div>
@@ -161,14 +204,14 @@ export default function SignInPage() {
           <Button
             asChild
             variant="outline"
-            className="w-full"
+            className="mt-6 h-12 w-full border-border/80 bg-background/70"
             size="lg"
           >
-            <Link href="/auth/signup">Create Account</Link>
+            <Link href={signupHref}>Create Account</Link>
           </Button>
 
           {/* Footer */}
-          <p className="text-center text-xs text-foreground/50">
+          <p className="mt-6 text-center text-xs text-foreground/50">
             By signing in, you agree to our{' '}
             <Link href="#" className="underline hover:text-foreground/70">
               Terms of Service
@@ -179,7 +222,30 @@ export default function SignInPage() {
             </Link>
           </p>
         </div>
+        </div>
       </div>
     </div>
+  )
+}
+
+function SignInPageFallback() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+        <div className="flex items-center gap-3 text-foreground/70">
+          <Spinner className="h-5 w-5" />
+          <p>Loading sign-in...</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInPageFallback />}>
+      <SignInPageContent />
+    </Suspense>
   )
 }

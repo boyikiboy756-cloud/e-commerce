@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LogOut, User, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import { getRoleLabel } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import {
 export function AuthMenu() {
   const router = useRouter()
   const { user, isAuthenticated, isAdmin, canAccessBackoffice, isLoading, logout } = useAuth()
+  const roleLabel = getRoleLabel(user?.role)
 
   if (isLoading) {
     return null
@@ -46,11 +48,9 @@ export function AuthMenu() {
         <div className="px-2 py-1.5 text-sm">
           <div className="font-medium">{user?.name}</div>
           <div className="text-xs text-foreground/60">{user?.email}</div>
-          {canAccessBackoffice && (
-            <div className="text-xs text-primary mt-1 font-semibold">
-              {isAdmin ? 'Admin' : 'Staff'}
-            </div>
-          )}
+          <div className="mt-1 text-xs font-semibold text-primary">
+            {roleLabel}
+          </div>
         </div>
         <DropdownMenuSeparator />
 
@@ -77,7 +77,7 @@ export function AuthMenu() {
             <DropdownMenuItem asChild>
               <Link href="/admin/dashboard" className="cursor-pointer">
                 <LayoutDashboard className="w-4 h-4 mr-2" />
-                {isAdmin ? 'Admin Dashboard' : 'Operations Dashboard'}
+                {isAdmin ? 'Admin Dashboard' : 'Staff Dashboard'}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
