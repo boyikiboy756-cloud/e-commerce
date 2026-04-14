@@ -3,10 +3,17 @@ import 'server-only'
 import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 
-const PUBLIC_ENV_NAMES = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'] as const
-const SERVER_ENV_NAMES = [...PUBLIC_ENV_NAMES, 'SUPABASE_SERVICE_ROLE_KEY'] as const
+const REQUIRED_PUBLIC_ENV_NAMES = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'] as const
+const OPTIONAL_PUBLIC_ENV_NAMES = ['NEXT_PUBLIC_SITE_URL'] as const
+const SERVER_ENV_NAMES = [
+  ...REQUIRED_PUBLIC_ENV_NAMES,
+  ...OPTIONAL_PUBLIC_ENV_NAMES,
+  'SUPABASE_SERVICE_ROLE_KEY',
+] as const
 
-type PublicEnvName = (typeof PUBLIC_ENV_NAMES)[number]
+type RequiredPublicEnvName = (typeof REQUIRED_PUBLIC_ENV_NAMES)[number]
+type OptionalPublicEnvName = (typeof OPTIONAL_PUBLIC_ENV_NAMES)[number]
+type PublicEnvName = RequiredPublicEnvName | OptionalPublicEnvName
 type ServerEnvName = (typeof SERVER_ENV_NAMES)[number]
 
 let fileEnvCache: Partial<Record<ServerEnvName, string>> | null = null
@@ -76,9 +83,26 @@ export function getRequiredServerEnv(name: ServerEnvName) {
   return value
 }
 
-export function getSupabasePublicRuntimeEnv() {
-  return {
+export function getOptionalServerEnv(name: ServerEnvName) {
+  const value = process.env[name]?.trim() || loadFileEnvValues()[name]?.trim()
+
+  return value || undefined
+}
+
+export function getPublicRuntimeEnv() {
+  const publicEnv = {
     NEXT_PUBLIC_SUPABASE_URL: getRequiredServerEnv('NEXT_PUBLIC_SUPABASE_URL'),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: getRequiredServerEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+  } satisfies Record<RequiredPublicEnvName, string>
+
+  const siteUrl = getOptionalServerEnv('NEXT_PUBLIC_SITE_URL')
+
+  if (!siteUrl) {
+    return publicEnv
+  }
+
+  return {
+    ...publicEnv,
+    NEXT_PUBLIC_SITE_URL: siteUrl,
   } satisfies Record<PublicEnvName, string>
 }

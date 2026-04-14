@@ -164,6 +164,8 @@ function SignInPageContent() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                suppressHydrationWarning
                 required
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -179,6 +181,8 @@ function SignInPageContent() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                suppressHydrationWarning
                 required
                 placeholder="••••••••"
                 className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -189,6 +193,7 @@ function SignInPageContent() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
+                  suppressHydrationWarning
                   className="w-4 h-4 rounded"
                 />
                 <span className="text-sm text-foreground/70">

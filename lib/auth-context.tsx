@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useEffectEvent, useState } from 'react'
 import { subscribeToUserProfile } from '@/lib/supabase-realtime'
-import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { getOptionalPublicBrowserEnv, getSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 export type UserRole = 'ADMIN' | 'STAFF' | 'USER'
 
@@ -33,6 +33,16 @@ const AUTH_STORAGE_KEY = 'auth-user'
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function getEmailRedirectTo() {
+  const configuredSiteUrl = getOptionalPublicBrowserEnv('NEXT_PUBLIC_SITE_URL')
+
+  if (configuredSiteUrl) {
+    try {
+      return new URL('/auth/signin?verified=1', configuredSiteUrl).toString()
+    } catch {
+      // Ignore invalid configured URLs and fall back to the current origin.
+    }
+  }
+
   if (typeof window === 'undefined') {
     return undefined
   }

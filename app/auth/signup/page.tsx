@@ -186,6 +186,8 @@ function SignUpPageContent() {
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
+                      autoComplete="given-name"
+                      suppressHydrationWarning
                       required
                       placeholder="John"
                       className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -202,6 +204,8 @@ function SignUpPageContent() {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleChange}
+                      autoComplete="family-name"
+                      suppressHydrationWarning
                       required
                       placeholder="Doe"
                       className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -219,6 +223,8 @@ function SignUpPageContent() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    autoComplete="email"
+                    suppressHydrationWarning
                     required
                     placeholder="you@example.com"
                     className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -235,6 +241,8 @@ function SignUpPageContent() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
+                    autoComplete="new-password"
+                    suppressHydrationWarning
                     required
                     placeholder="********"
                     className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -251,6 +259,8 @@ function SignUpPageContent() {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
+                    autoComplete="new-password"
+                    suppressHydrationWarning
                     required
                     placeholder="********"
                     className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
@@ -258,7 +268,7 @@ function SignUpPageContent() {
                 </div>
 
                 <label className="flex items-center gap-3 cursor-pointer pt-2">
-                  <input type="checkbox" required className="w-4 h-4 rounded" />
+                  <input type="checkbox" required suppressHydrationWarning className="w-4 h-4 rounded" />
                   <span className="text-sm text-foreground/70">
                     I agree to the{' '}
                     <Link href="#" className="underline hover:text-foreground">
