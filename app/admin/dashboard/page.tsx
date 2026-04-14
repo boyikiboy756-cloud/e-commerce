@@ -25,6 +25,7 @@ import {
   buildChannelMixData,
   buildInventoryHealthData,
   buildSalesTrendData,
+  isSuccessfulPaymentOrder,
 } from '@/lib/analytics'
 import { formatPHP } from '@/lib/currency'
 import { useAuth } from '@/lib/auth-context'
@@ -46,16 +47,25 @@ const inventoryHealthColors = ['#e888a8', '#f2b5c8', '#9e4c6d']
 
 export default function AdminDashboard() {
   const { isAdmin, user } = useAuth()
-  const { inventory, orders, posTransactions } = useStore()
+  const { inventory, isRealtimeRefreshing, lastSyncedAt, orders, posTransactions } = useStore()
   const isStaffView = user?.role === 'STAFF'
+  const successfulPayments = useMemo(
+    () => orders.filter(isSuccessfulPaymentOrder),
+    [orders],
+  )
   const activeInventory = useMemo(
     () => inventory.filter((item) => !item.isArchived),
     [inventory],
   )
   const todayKey = new Date().toDateString()
 
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
-  const totalTax = orders.reduce((sum, order) => sum + order.tax, 0)
+  const totalRevenue = successfulPayments.reduce((sum, order) => sum + order.total, 0)
+  const totalTax = successfulPayments.reduce((sum, order) => sum + order.tax, 0)
+  const successfulPaymentCount = successfulPayments.length
+  const todayRevenue = successfulPayments
+    .filter((order) => new Date(order.createdAt).toDateString() === todayKey)
+    .reduce((sum, order) => sum + order.total, 0)
+  const pendingPaymentOrders = orders.filter((order) => order.paymentStatus !== 'Paid')
   const lowStockCount = activeInventory.filter(
     (item) => item.stock > 0 && item.stock <= item.reorderPoint,
   ).length
@@ -99,6 +109,13 @@ export default function AdminDashboard() {
     [activeInventory],
   )
   const highlightedOrders = isStaffView ? recentOperationalOrders : recentOrders
+  const lastSyncLabel = lastSyncedAt
+    ? new Date(lastSyncedAt).toLocaleTimeString('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : 'Waiting for first sync'
 
   const stats = isStaffView
     ? [
@@ -129,22 +146,28 @@ export default function AdminDashboard() {
       ]
     : [
         {
-          label: 'Total Revenue',
+          label: 'Paid Revenue',
           value: formatPHP(totalRevenue),
-          caption: 'Online plus POS transactions',
+          caption: 'Successful online and POS payments only',
           icon: BarChart3,
         },
         {
-          label: 'Orders',
-          value: orders.length.toString(),
-          caption: `${posTransactions.length} POS transaction(s) recorded`,
+          label: 'Today Revenue',
+          value: formatPHP(todayRevenue),
+          caption: `${successfulPaymentCount} successful payment(s) recorded`,
+          icon: ReceiptText,
+        },
+        {
+          label: 'Pending Payments',
+          value: pendingPaymentOrders.length.toString(),
+          caption: 'Orders still waiting for payment collection',
           icon: ShoppingCart,
         },
         {
           label: 'Tax Collected',
           value: formatPHP(totalTax),
-          caption: 'Automatic tax analytics enabled',
-          icon: ReceiptText,
+          caption: 'Collected from successful payments',
+          icon: BarChart3,
         },
         {
           label: 'Inventory Alerts',
@@ -174,6 +197,18 @@ export default function AdminDashboard() {
                       ? 'Today’s fulfillment queue, low-stock items, and in-store activity from the shared store dataset.'
                       : 'Real-time inventory, transaction, and availability tracking from the same store dataset.'}
                   </p>
+                  <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-border bg-background px-4 py-2 text-xs text-foreground/65">
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        isRealtimeRefreshing ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+                      }`}
+                    />
+                    <span>
+                      {isRealtimeRefreshing
+                        ? 'Syncing live admin data...'
+                        : `Live from Supabase. Last sync ${lastSyncLabel}.`}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
@@ -219,7 +254,7 @@ export default function AdminDashboard() {
                   <p className="mt-2 text-sm text-foreground/60">
                     {isStaffView
                       ? 'Daily activity split between online orders and POS transactions.'
-                      : 'Daily revenue split between online orders and POS transactions.'}
+                      : 'Daily paid revenue split between online orders and POS transactions.'}
                   </p>
                 </div>
 
@@ -278,7 +313,7 @@ export default function AdminDashboard() {
                   <p className="mt-2 text-sm text-foreground/60">
                     {isStaffView
                       ? 'Quick view of how the store is moving across online and POS.'
-                      : 'Quick view of where revenue is coming from right now.'}
+                      : 'Quick view of where successful payment revenue is coming from right now.'}
                   </p>
                 </div>
 

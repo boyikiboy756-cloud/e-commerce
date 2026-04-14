@@ -1,15 +1,9 @@
 import { formatPHP } from '@/lib/currency'
-
-export const ADMIN_PROMOTIONS_STORAGE_KEY = 'admin-promotions'
+import { subscribeToPromotions as subscribeToPromotionChanges } from '@/lib/supabase-realtime'
+import { getSupabaseBrowserClient } from '@/lib/supabase-browser'
 
 export const PROMOTION_TYPES = ['Percentage', 'Fixed'] as const
-export const PROMOTION_STATUSES = [
-  'Draft',
-  'Scheduled',
-  'Active',
-  'Paused',
-  'Expired',
-] as const
+export const PROMOTION_STATUSES = ['Draft', 'Scheduled', 'Active', 'Paused', 'Expired'] as const
 
 export type PromotionType = (typeof PROMOTION_TYPES)[number]
 export type PromotionStatus = (typeof PROMOTION_STATUSES)[number]
@@ -127,42 +121,85 @@ function createPromotionId(code: string) {
   return normalizedCode || `promotion-${Date.now()}`
 }
 
-export function getStoredPromotions(): StoredPromotion[] {
-  if (typeof window === 'undefined') {
-    return seedPromotions
+async function getAuthHeaders() {
+  const supabase = getSupabaseBrowserClient()
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+
+  const headers: Record<string, string> = {}
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
   }
 
-  try {
-    const stored = window.localStorage.getItem(ADMIN_PROMOTIONS_STORAGE_KEY)
+  return headers
+}
 
-    if (!stored) {
-      return seedPromotions
-    }
+export async function listPromotions(): Promise<StoredPromotion[]> {
+  const response = await fetch('/api/promotions', {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+    cache: 'no-store',
+  })
+  const payload = await response.json().catch(() => ({}))
 
-    const parsed = JSON.parse(stored)
-    return Array.isArray(parsed) ? parsed : seedPromotions
-  } catch {
-    return seedPromotions
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Unable to load promotions.')
+  }
+
+  return Array.isArray(payload.promotions) ? (payload.promotions as StoredPromotion[]) : []
+}
+
+export async function createStoredPromotion(promotion: StoredPromotion) {
+  const response = await fetch('/api/promotions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    },
+    body: JSON.stringify(promotion),
+  })
+  const payload = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Unable to create promotion.')
+  }
+
+  return payload.promotion as StoredPromotion
+}
+
+export async function updateStoredPromotion(promotion: StoredPromotion) {
+  const response = await fetch(`/api/promotions/${promotion.id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    },
+    body: JSON.stringify(promotion),
+  })
+  const payload = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Unable to update promotion.')
+  }
+
+  return payload.promotion as StoredPromotion
+}
+
+export async function deleteStoredPromotion(promotionId: string) {
+  const response = await fetch(`/api/promotions/${promotionId}`, {
+    method: 'DELETE',
+    headers: await getAuthHeaders(),
+  })
+  const payload = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Unable to delete promotion.')
   }
 }
 
-export function saveStoredPromotions(nextPromotions: StoredPromotion[]) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(
-    ADMIN_PROMOTIONS_STORAGE_KEY,
-    JSON.stringify(nextPromotions),
-  )
-}
-
-export function removeStoredPromotion(promotionId: string) {
-  const nextPromotions = getStoredPromotions().filter(
-    (promotion) => promotion.id !== promotionId,
-  )
-  saveStoredPromotions(nextPromotions)
-  return nextPromotions
+export function subscribeToPromotions(onChange: () => void) {
+  return subscribeToPromotionChanges(onChange)
 }
 
 export function formatPromotionUsage(promotion: StoredPromotion) {
@@ -170,23 +207,16 @@ export function formatPromotionUsage(promotion: StoredPromotion) {
 }
 
 export function formatStoredPromotionDiscount(promotion: StoredPromotion) {
-  return promotion.type === 'Fixed'
-    ? formatPHP(promotion.discount)
-    : `${promotion.discount}%`
+  return promotion.type === 'Fixed' ? formatPHP(promotion.discount) : `${promotion.discount}%`
 }
 
-export function promotionFormValuesFromPromotion(
-  promotion: StoredPromotion,
-): PromotionFormValues {
+export function promotionFormValuesFromPromotion(promotion: StoredPromotion): PromotionFormValues {
   return {
     code: promotion.code,
     type: promotion.type,
     discountValue: String(promotion.discount),
     usedCount: String(promotion.usedCount),
-    usageLimit:
-      typeof promotion.usageLimit === 'number'
-        ? String(promotion.usageLimit)
-        : '',
+    usageLimit: typeof promotion.usageLimit === 'number' ? String(promotion.usageLimit) : '',
     status: promotion.status,
     startsAt: promotion.startsAt,
     expiresAt: promotion.expiresAt,
@@ -194,9 +224,7 @@ export function promotionFormValuesFromPromotion(
   }
 }
 
-export function createPromotionFromForm(
-  values: PromotionFormValues,
-): StoredPromotion {
+export function createPromotionFromForm(values: PromotionFormValues): StoredPromotion {
   return {
     id: createPromotionId(values.code),
     code: normalizePromotionCode(values.code),
@@ -204,9 +232,7 @@ export function createPromotionFromForm(
     discount: Number(values.discountValue),
     usedCount: Math.max(0, Math.round(Number(values.usedCount) || 0)),
     usageLimit:
-      values.usageLimit.trim().length > 0
-        ? Math.max(0, Math.round(Number(values.usageLimit)))
-        : null,
+      values.usageLimit.trim().length > 0 ? Math.max(0, Math.round(Number(values.usageLimit))) : null,
     status: values.status,
     startsAt: values.startsAt,
     expiresAt: values.expiresAt,
@@ -225,9 +251,7 @@ export function updatePromotionFromForm(
     discount: Number(values.discountValue),
     usedCount: Math.max(0, Math.round(Number(values.usedCount) || 0)),
     usageLimit:
-      values.usageLimit.trim().length > 0
-        ? Math.max(0, Math.round(Number(values.usageLimit)))
-        : null,
+      values.usageLimit.trim().length > 0 ? Math.max(0, Math.round(Number(values.usageLimit))) : null,
     status: values.status,
     startsAt: values.startsAt,
     expiresAt: values.expiresAt,

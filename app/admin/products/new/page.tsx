@@ -291,7 +291,7 @@ export default function NewProductPage() {
 
     try {
       const product = createProductFromForm(normalizedValues)
-      const result = addCatalogProduct(product, {
+      const result = await addCatalogProduct(product, {
         initialStock: Number(normalizedValues.stockQuantity),
         reorderPoint: Number(normalizedValues.reorderPoint),
         location: normalizedValues.storageLocation.trim(),

@@ -24,6 +24,8 @@ export default function ProductPage({
     getAvailableStock,
     getInventoryRecord,
     getProductById,
+    isWishlisted,
+    toggleWishlist,
   } = useStore()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const product = getProductById(id)
@@ -32,6 +34,7 @@ export default function ProductPage({
   const [selectedSizeMl, setSelectedSizeMl] = useState<number | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [mainImage, setMainImage] = useState('')
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
 
   useEffect(() => {
     if (!product) {
@@ -76,16 +79,31 @@ export default function ProductPage({
   const authRedirectHref = `/auth/signin?redirectTo=${encodeURIComponent(`/products/${product.id}`)}`
   const registerRedirectHref = `/auth/signup?redirectTo=${encodeURIComponent(`/products/${product.id}`)}`
 
-  const handleAddToCart = () => {
-    const result = addToCart({
-      productId: product.id,
-      quantity,
-      size: selectedSize.ml,
-      unitPrice: selectedSize.price,
-    })
+  const handleAddToCart = async () => {
+    setIsAddingToCart(true)
 
+    try {
+      const result = await addToCart({
+        productId: product.id,
+        quantity,
+        size: selectedSize.ml,
+        unitPrice: selectedSize.price,
+      })
+
+      toast({
+        title: result.ok ? 'Cart updated' : 'Unable to add item',
+        description: result.message,
+        variant: result.ok ? 'default' : 'destructive',
+      })
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
+
+  const handleWishlist = async () => {
+    const result = await toggleWishlist(product.id)
     toast({
-      title: result.ok ? 'Cart updated' : 'Unable to add item',
+      title: result.ok ? 'Wishlist updated' : 'Unable to update wishlist',
       description: result.message,
       variant: result.ok ? 'default' : 'destructive',
     })
@@ -180,6 +198,7 @@ export default function ProductPage({
                 {product.sizes.map((size) => (
                   <button
                     key={size.ml}
+                    type="button"
                     onClick={() => setSelectedSizeMl(size.ml)}
                     className={`py-3 px-4 rounded-lg border-2 font-medium transition-colors ${
                       selectedSize.ml === size.ml
@@ -197,6 +216,7 @@ export default function ProductPage({
               <h3 className="font-medium text-foreground mb-4">Quantity</h3>
               <div className="flex items-center gap-4 w-fit">
                 <button
+                  type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="w-10 h-10 rounded-lg border border-border hover:bg-muted transition-colors"
                   aria-label="Decrease quantity"
@@ -205,6 +225,7 @@ export default function ProductPage({
                 </button>
                 <span className="w-8 text-center font-medium">{quantity}</span>
                 <button
+                  type="button"
                   onClick={() => setQuantity(Math.min(Math.max(1, availableStock), quantity + 1))}
                   disabled={availableStock === 0}
                   className="w-10 h-10 rounded-lg border border-border hover:bg-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -230,14 +251,20 @@ export default function ProductPage({
                   <Button
                     size="lg"
                     className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
-                    onClick={handleAddToCart}
-                    disabled={availableStock === 0 || isArchived}
+                    onClick={() => void handleAddToCart()}
+                    disabled={availableStock === 0 || isArchived || isAddingToCart}
                   >
                     <ShoppingBag className="w-5 h-5 mr-2" />
-                    {isArchived ? 'Archived' : availableStock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                    {isArchived
+                      ? 'Archived'
+                      : availableStock === 0
+                        ? 'Out of Stock'
+                        : isAddingToCart
+                          ? 'Adding...'
+                          : 'Add to Cart'}
                   </Button>
-                  <Button size="lg" variant="outline" className="px-6">
-                    <Heart className="w-5 h-5" />
+                  <Button size="lg" variant="outline" className="px-6" onClick={() => void handleWishlist()}>
+                    <Heart className={`w-5 h-5 ${isWishlisted(product.id) ? 'fill-current' : ''}`} />
                   </Button>
                 </div>
               ) : (

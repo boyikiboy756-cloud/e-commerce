@@ -8,26 +8,23 @@ import { Header } from '@/components/header'
 import { useAuth } from '@/lib/auth-context'
 import { getSafeRedirectPath } from '@/lib/auth'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  ADMIN_EMAIL,
-  ADMIN_PASSWORD,
-  DEMO_USER_EMAIL,
-  DEMO_USER_PASSWORD,
-  SITE_NAME,
-  STAFF_EMAIL,
-  STAFF_PASSWORD,
-} from '@/lib/site'
+import { SITE_NAME } from '@/lib/site'
 
 function SignInPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login, isAuthenticated, canAccessBackoffice, isLoading: authLoading } = useAuth()
+  const { login, resendVerificationEmail, isAuthenticated, canAccessBackoffice, isLoading: authLoading } =
+    useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const [error, setError] = useState('')
+  const [infoMessage, setInfoMessage] = useState('')
+  const [needsVerification, setNeedsVerification] = useState(false)
   const redirectTo = getSafeRedirectPath(searchParams.get('redirectTo'))
   const reason = searchParams.get('reason')
+  const verified = searchParams.get('verified')
   const isCheckoutRedirect = reason === 'checkout'
   const isProductRedirect = redirectTo?.startsWith('/products/') ?? false
   const authQuery = new URLSearchParams()
@@ -54,6 +51,12 @@ function SignInPageContent() {
       ? 'Sign in to add this fragrance to your cart and continue shopping.'
       : null
 
+  useEffect(() => {
+    if (verified === '1') {
+      setInfoMessage('Your email has been verified. You can sign in now.')
+    }
+  }, [verified])
+
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -68,15 +71,34 @@ function SignInPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfoMessage('')
+    setNeedsVerification(false)
     setLoading(true)
 
     try {
       await login(email, password)
       // Redirect will happen via useEffect
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      const message = err instanceof Error ? err.message : 'Login failed'
+      setError(message)
+      setNeedsVerification(message.toLowerCase().includes('verify your email'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setError('')
+    setInfoMessage('')
+    setResendLoading(true)
+
+    try {
+      await resendVerificationEmail(email)
+      setInfoMessage('Verification email sent. Check your inbox and spam folder.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to resend verification email.')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -107,6 +129,12 @@ function SignInPageContent() {
             </div>
           )}
 
+          {infoMessage && (
+            <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm text-emerald-700">{infoMessage}</p>
+            </div>
+          )}
+
           {contextMessage && (
             <div className="mt-8 rounded-2xl border border-border/70 bg-background/70 p-5">
               <p className="text-sm leading-6 text-foreground/70">
@@ -115,19 +143,13 @@ function SignInPageContent() {
             </div>
           )}
 
-          {/* Demo Info */}
+          {/* Account Info */}
           <div className="mt-6 rounded-2xl border border-border/60 bg-background/60 p-4 space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-foreground/40">
-              Demo Access
+              Account Access
             </p>
             <p className="text-xs text-foreground/60">
-              <strong>Admin:</strong> {ADMIN_EMAIL} / {ADMIN_PASSWORD}
-            </p>
-            <p className="text-xs text-foreground/60">
-              <strong>Staff:</strong> {STAFF_EMAIL} / {STAFF_PASSWORD}
-            </p>
-            <p className="text-xs text-foreground/60">
-              <strong>User:</strong> {DEMO_USER_EMAIL} / {DEMO_USER_PASSWORD}
+              Sign in with the email and password from your verified Supabase Auth account.
             </p>
           </div>
 
@@ -186,6 +208,18 @@ function SignInPageContent() {
               {loading && <Spinner className="w-4 h-4" />}
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
+
+            {needsVerification && (
+              <Button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                variant="outline"
+                className="h-12 w-full"
+              >
+                {resendLoading ? 'Sending verification...' : 'Resend Verification Email'}
+              </Button>
+            )}
           </form>
 
           {/* Divider */}

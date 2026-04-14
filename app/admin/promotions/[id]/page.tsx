@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { AdminPromotionEditor } from '@/components/admin-promotion-editor'
@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/protected-route'
 import { toast } from '@/hooks/use-toast'
 import {
-  getStoredPromotions,
+  listPromotions,
   promotionFormValuesFromPromotion,
-  saveStoredPromotions,
+  subscribeToPromotions,
+  updateStoredPromotion,
   updatePromotionFromForm,
   type PromotionFormValues,
   type StoredPromotion,
@@ -25,8 +26,25 @@ export default function EditPromotionPage() {
     Array.isArray(params.id) ? params.id[0] ?? '' : params.id ?? '',
   )
 
+  const loadPromotions = useEffectEvent(async () => {
+    try {
+      setPromotions(await listPromotions())
+    } catch (error) {
+      toast({
+        title: 'Unable to load promotion',
+        description: error instanceof Error ? error.message : 'Try again in a moment.',
+        variant: 'destructive',
+      })
+      setPromotions([])
+    }
+  })
+
   useEffect(() => {
-    setPromotions(getStoredPromotions())
+    void loadPromotions()
+
+    return subscribeToPromotions(() => {
+      void loadPromotions()
+    })
   }, [])
 
   const promotion = useMemo(
@@ -42,41 +60,49 @@ export default function EditPromotionPage() {
   }, [promotion])
 
   const handleSubmit = async (values: PromotionFormValues) => {
-    if (!promotion || !promotions) {
+    try {
+      if (!promotion || !promotions) {
+        toast({
+          title: 'Promotion not found',
+          description: 'This discount campaign is no longer available to edit.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const updatedPromotion = updatePromotionFromForm(promotion, values)
+      const duplicateCode = promotions.some(
+        (item) =>
+          item.id !== promotion.id &&
+          item.code.toLowerCase() === updatedPromotion.code.toLowerCase(),
+      )
+
+      if (duplicateCode) {
+        toast({
+          title: 'Promotion code already exists',
+          description: 'Use a different code before saving your changes.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      await updateStoredPromotion(updatedPromotion)
+      const nextPromotions = promotions.map((item) =>
+        item.id === promotion.id ? updatedPromotion : item,
+      )
+      setPromotions(nextPromotions)
       toast({
-        title: 'Promotion not found',
-        description: 'This discount campaign is no longer available to edit.',
+        title: 'Promotion updated',
+        description: `${updatedPromotion.code} was updated successfully.`,
+      })
+      router.push('/admin/promotions')
+    } catch (error) {
+      toast({
+        title: 'Unable to update promotion',
+        description: error instanceof Error ? error.message : 'Try again in a moment.',
         variant: 'destructive',
       })
-      return
     }
-
-    const updatedPromotion = updatePromotionFromForm(promotion, values)
-    const duplicateCode = promotions.some(
-      (item) =>
-        item.id !== promotion.id &&
-        item.code.toLowerCase() === updatedPromotion.code.toLowerCase(),
-    )
-
-    if (duplicateCode) {
-      toast({
-        title: 'Promotion code already exists',
-        description: 'Use a different code before saving your changes.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    const nextPromotions = promotions.map((item) =>
-      item.id === promotion.id ? updatedPromotion : item,
-    )
-    saveStoredPromotions(nextPromotions)
-    setPromotions(nextPromotions)
-    toast({
-      title: 'Promotion updated',
-      description: `${updatedPromotion.code} was updated successfully.`,
-    })
-    router.push('/admin/promotions')
   }
 
   if (promotions === null) {

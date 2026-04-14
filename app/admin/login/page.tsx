@@ -5,13 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth-context'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  ADMIN_EMAIL,
-  ADMIN_PASSWORD,
-  SITE_NAME,
-  STAFF_EMAIL,
-  STAFF_PASSWORD,
-} from '@/lib/site'
+import { SITE_NAME } from '@/lib/site'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -66,11 +60,12 @@ export default function AdminLoginPage() {
           </div>
         )}
 
-        {/* Demo Credentials */}
+        {/* Access Guidance */}
         <div className="p-4 bg-muted rounded-lg">
-          <p className="text-sm font-medium text-foreground mb-2">Store Credentials:</p>
-          <p className="text-xs text-foreground/70 font-mono">Admin: {ADMIN_EMAIL} / {ADMIN_PASSWORD}</p>
-          <p className="text-xs text-foreground/70 font-mono">Staff: {STAFF_EMAIL} / {STAFF_PASSWORD}</p>
+          <p className="text-sm font-medium text-foreground mb-2">Store Access:</p>
+          <p className="text-xs text-foreground/70">
+            Sign in with a Supabase Auth account whose profile role is set to `ADMIN` or `STAFF`.
+          </p>
         </div>
 
         {/* Form */}
@@ -85,7 +80,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder={STAFF_EMAIL}
+              placeholder="staff@yourstore.com"
               className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
@@ -116,11 +111,12 @@ export default function AdminLoginPage() {
           </Button>
         </form>
 
-        {/* Demo Credentials */}
+        {/* Role Note */}
         <div className="bg-muted rounded-lg p-4 space-y-2">
-          <p className="text-xs font-medium text-foreground/60 uppercase">Demo Credentials</p>
-          <p className="text-sm text-foreground/70">Admin: {ADMIN_EMAIL} / {ADMIN_PASSWORD}</p>
-          <p className="text-sm text-foreground/70">Staff: {STAFF_EMAIL} / {STAFF_PASSWORD}</p>
+          <p className="text-xs font-medium text-foreground/60 uppercase">Role Note</p>
+          <p className="text-sm text-foreground/70">
+            Customer accounts can sign in on the storefront, but only `ADMIN` and `STAFF` profiles can open operations tools.
+          </p>
         </div>
       </div>
     </div>

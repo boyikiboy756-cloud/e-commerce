@@ -1,16 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { ArrowLeft, Edit, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/hooks/use-toast'
 import { ProtectedRoute } from '@/components/protected-route'
 import {
+  deleteStoredPromotion,
   formatPromotionUsage,
   formatStoredPromotionDiscount,
-  getStoredPromotions,
-  removeStoredPromotion,
+  listPromotions,
+  subscribeToPromotions,
   type StoredPromotion,
 } from '@/lib/admin-promotions'
 
@@ -32,8 +33,24 @@ function getStatusClasses(status: StoredPromotion['status']) {
 export default function AdminPromotionsPage() {
   const [promotions, setPromotions] = useState<StoredPromotion[]>([])
 
+  const loadPromotions = useEffectEvent(async () => {
+    try {
+      setPromotions(await listPromotions())
+    } catch (error) {
+      toast({
+        title: 'Unable to load promotions',
+        description: error instanceof Error ? error.message : 'Try again in a moment.',
+        variant: 'destructive',
+      })
+    }
+  })
+
   useEffect(() => {
-    setPromotions(getStoredPromotions())
+    void loadPromotions()
+
+    return subscribeToPromotions(() => {
+      void loadPromotions()
+    })
   }, [])
 
   const sortedPromotions = useMemo(
@@ -44,7 +61,7 @@ export default function AdminPromotionsPage() {
     [promotions],
   )
 
-  const handleDelete = (promotion: StoredPromotion) => {
+  const handleDelete = async (promotion: StoredPromotion) => {
     const shouldDelete = window.confirm(
       `Remove promotion "${promotion.code}" from the discount list?`,
     )
@@ -53,8 +70,17 @@ export default function AdminPromotionsPage() {
       return
     }
 
-    const nextPromotions = removeStoredPromotion(promotion.id)
-    setPromotions(nextPromotions)
+    try {
+      await deleteStoredPromotion(promotion.id)
+      setPromotions((current) => current.filter((item) => item.id !== promotion.id))
+    } catch (error) {
+      toast({
+        title: 'Unable to remove promotion',
+        description: error instanceof Error ? error.message : 'Try again in a moment.',
+        variant: 'destructive',
+      })
+      return
+    }
     toast({
       title: 'Promotion removed',
       description: `${promotion.code} was deleted from your discounts list.`,

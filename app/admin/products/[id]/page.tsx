@@ -47,7 +47,7 @@ export default function EditProductPage() {
     }
 
     const updatedProduct = updateProductFromForm(product, values)
-    const result = updateCatalogProduct(product.id, updatedProduct, {
+    const result = await updateCatalogProduct(product.id, updatedProduct, {
       stock: Number(values.stockQuantity),
       reorderPoint: Number(values.reorderPoint),
       location: values.storageLocation.trim(),

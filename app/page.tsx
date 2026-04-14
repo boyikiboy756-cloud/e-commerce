@@ -1,20 +1,22 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { ProductCard } from '@/components/product-card'
-import { getFeaturedProducts, getNewArrivals } from '@/lib/products'
+import { useStore } from '@/lib/store-context'
 import { SITE_NAME } from '@/lib/site'
 
 export default function Home() {
-  const featured = getFeaturedProducts()
-  const newArrivals = getNewArrivals()
+  const { catalog } = useStore()
+  const featured = catalog.filter((product) => product.featured)
+  const newArrivals = catalog.filter((product) => product.isNewArrival)
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
       <section className="relative h-screen w-full overflow-hidden">
         <Image
           src="/hero-banner.jpg"
@@ -25,7 +27,7 @@ export default function Home() {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/30" />
-        
+
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="max-w-2xl text-center space-y-6 px-6">
             <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl text-white font-light tracking-tight">
@@ -55,15 +57,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Collections */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <p className="text-sm font-medium text-accent uppercase tracking-wide mb-2">
-            Collection
-          </p>
-          <h2 className="font-serif text-4xl sm:text-5xl text-foreground mb-4">
-            Featured Fragrances
-          </h2>
+          <p className="text-sm font-medium text-accent uppercase tracking-wide mb-2">Collection</p>
+          <h2 className="font-serif text-4xl sm:text-5xl text-foreground mb-4">Featured Fragrances</h2>
           <p className="text-foreground/60 text-lg max-w-2xl mx-auto">
             Explore our carefully curated selection of premium fragrances
           </p>
@@ -76,33 +73,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Brand Story */}
       <section className="bg-muted py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="relative aspect-square rounded-lg overflow-hidden bg-background">
-          <Image
-            src="/hero-banner.jpg"
-            alt="Brand story"
-            fill
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            className="object-cover"
-          />
+            <Image
+              src="/hero-banner.jpg"
+              alt="Brand story"
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              className="object-cover"
+            />
           </div>
-          
+
           <div className="space-y-6">
             <div>
-              <p className="text-sm font-medium text-accent uppercase tracking-wide mb-2">
-                Our Story
-              </p>
-              <h2 className="font-serif text-4xl text-foreground mb-4">
-                {SITE_NAME} Philosophy
-              </h2>
+              <p className="text-sm font-medium text-accent uppercase tracking-wide mb-2">Our Story</p>
+              <h2 className="font-serif text-4xl text-foreground mb-4">{SITE_NAME} Philosophy</h2>
             </div>
-            
+
             <p className="text-foreground/70 text-lg leading-relaxed">
               Since our founding, {SITE_NAME} has been dedicated to creating exceptional fragrances that tell a story. Each scent is meticulously crafted using the finest ingredients sourced from around the world.
             </p>
-            
+
             <p className="text-foreground/70 text-lg leading-relaxed">
               We believe that fragrance is a form of self-expression, a personal signature that reflects who you are. Our commitment to quality and sustainability drives every decision we make.
             </p>
@@ -114,15 +106,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* New Arrivals */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <p className="text-sm font-medium text-accent uppercase tracking-wide mb-2">
-            Latest
-          </p>
-          <h2 className="font-serif text-4xl sm:text-5xl text-foreground mb-4">
-            New Arrivals
-          </h2>
+          <p className="text-sm font-medium text-accent uppercase tracking-wide mb-2">Latest</p>
+          <h2 className="font-serif text-4xl sm:text-5xl text-foreground mb-4">New Arrivals</h2>
           <p className="text-foreground/60 text-lg max-w-2xl mx-auto">
             Discover what's new in our collection
           </p>
@@ -135,13 +122,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Newsletter */}
       <section className="bg-foreground text-background py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center space-y-8">
           <div>
-            <h2 className="font-serif text-3xl sm:text-4xl mb-4">
-              Stay Updated
-            </h2>
+            <h2 className="font-serif text-3xl sm:text-4xl mb-4">Stay Updated</h2>
             <p className="text-background/80 text-lg">
               Subscribe to receive exclusive offers and new fragrance launches
             </p>
@@ -166,17 +150,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-background border-t border-border py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="font-serif text-lg text-foreground mb-4">
-                {SITE_NAME}
-              </h3>
-              <p className="text-foreground/60 text-sm">
-                Crafting premium fragrances since 2010
-              </p>
+              <h3 className="font-serif text-lg text-foreground mb-4">{SITE_NAME}</h3>
+              <p className="text-foreground/60 text-sm">Crafting premium fragrances since 2010</p>
             </div>
 
             <div>
@@ -208,29 +187,15 @@ export default function Home() {
           </div>
 
           <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-foreground/60">
-              © 2024 {SITE_NAME}. All rights reserved.
-            </p>
+            <p className="text-sm text-foreground/60">© 2024 {SITE_NAME}. All rights reserved.</p>
             <div className="flex gap-6">
-              <button
-                type="button"
-                suppressHydrationWarning
-                className="text-sm text-foreground/60 hover:text-accent"
-              >
+              <button type="button" suppressHydrationWarning className="text-sm text-foreground/60 hover:text-accent">
                 Privacy
               </button>
-              <button
-                type="button"
-                suppressHydrationWarning
-                className="text-sm text-foreground/60 hover:text-accent"
-              >
+              <button type="button" suppressHydrationWarning className="text-sm text-foreground/60 hover:text-accent">
                 Terms
               </button>
-              <button
-                type="button"
-                suppressHydrationWarning
-                className="text-sm text-foreground/60 hover:text-accent"
-              >
+              <button type="button" suppressHydrationWarning className="text-sm text-foreground/60 hover:text-accent">
                 Cookies
               </button>
             </div>

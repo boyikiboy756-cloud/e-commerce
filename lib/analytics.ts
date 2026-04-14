@@ -4,6 +4,10 @@ import type {
   StockMovement,
 } from '@/lib/store-context'
 
+export function isSuccessfulPaymentOrder(order: OrderRecord) {
+  return order.paymentStatus === 'Paid'
+}
+
 function toDayKey(dateValue: string) {
   return new Date(dateValue).toISOString().slice(0, 10)
 }
@@ -16,6 +20,7 @@ function formatShortDate(dateValue: string) {
 }
 
 export function buildSalesTrendData(orders: OrderRecord[], days = 7) {
+  const successfulOrders = orders.filter(isSuccessfulPaymentOrder)
   const now = new Date()
   const range = Array.from({ length: days }, (_, index) => {
     const date = new Date(now)
@@ -34,7 +39,7 @@ export function buildSalesTrendData(orders: OrderRecord[], days = 7) {
 
   const dateMap = new Map(range.map((entry) => [entry.date, entry]))
 
-  orders.forEach((order) => {
+  successfulOrders.forEach((order) => {
     const key = toDayKey(order.createdAt)
     const bucket = dateMap.get(key)
 
@@ -55,7 +60,9 @@ export function buildSalesTrendData(orders: OrderRecord[], days = 7) {
 }
 
 export function buildChannelMixData(orders: OrderRecord[]) {
-  const totals = orders.reduce(
+  const totals = orders
+    .filter(isSuccessfulPaymentOrder)
+    .reduce(
     (accumulator, order) => {
       if (order.source === 'ONLINE') {
         accumulator.online += order.total
@@ -74,10 +81,12 @@ export function buildChannelMixData(orders: OrderRecord[]) {
 }
 
 export function buildPaymentBreakdownData(orders: OrderRecord[]) {
-  const grouped = orders.reduce<Record<string, number>>((accumulator, order) => {
-    accumulator[order.paymentMethod] = (accumulator[order.paymentMethod] ?? 0) + order.total
-    return accumulator
-  }, {})
+  const grouped = orders
+    .filter(isSuccessfulPaymentOrder)
+    .reduce<Record<string, number>>((accumulator, order) => {
+      accumulator[order.paymentMethod] = (accumulator[order.paymentMethod] ?? 0) + order.total
+      return accumulator
+    }, {})
 
   return Object.entries(grouped).map(([label, value]) => ({
     key: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -122,7 +131,9 @@ export function buildInventoryHealthData(inventory: InventoryRecord[]) {
 }
 
 export function buildTopProductData(orders: OrderRecord[], limit = 5) {
-  const grouped = orders.reduce<
+  const grouped = orders
+    .filter(isSuccessfulPaymentOrder)
+    .reduce<
     Record<
       string,
       {

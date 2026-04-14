@@ -31,6 +31,7 @@ import {
   buildSalesTrendData,
   buildStockMovementData,
   buildTopProductData,
+  isSuccessfulPaymentOrder,
 } from '@/lib/analytics'
 import { formatPHP } from '@/lib/currency'
 import { useStore } from '@/lib/store-context'
@@ -74,13 +75,19 @@ export default function ReportsPage() {
     () => catalog.filter((product) => !getInventoryRecord(product.id)?.isArchived),
     [catalog, getInventoryRecord],
   )
+  const successfulPayments = useMemo(
+    () => orders.filter(isSuccessfulPaymentOrder),
+    [orders],
+  )
 
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
-  const onlineRevenue = orders
+  const totalRevenue = successfulPayments.reduce((sum, order) => sum + order.total, 0)
+  const onlineRevenue = successfulPayments
     .filter((order) => order.source === 'ONLINE')
     .reduce((sum, order) => sum + order.total, 0)
-  const posRevenue = posTransactions.reduce((sum, transaction) => sum + transaction.total, 0)
-  const taxCollected = orders.reduce((sum, order) => sum + order.tax, 0)
+  const posRevenue = successfulPayments
+    .filter((order) => order.source === 'POS')
+    .reduce((sum, order) => sum + order.total, 0)
+  const taxCollected = successfulPayments.reduce((sum, order) => sum + order.tax, 0)
   const inventoryCoverage =
     activeCatalog.length === 0
       ? 0
@@ -125,15 +132,15 @@ export default function ReportsPage() {
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4 mb-10">
               <div className="rounded-2xl border border-border bg-card p-6">
                 <BarChart3 className="h-5 w-5 text-accent mb-4" />
-                <p className="text-sm font-medium text-foreground/60">Total Revenue</p>
+                <p className="text-sm font-medium text-foreground/60">Paid Revenue</p>
                 <p className="mt-2 font-serif text-3xl text-foreground">{formatPHP(totalRevenue)}</p>
               </div>
               <div className="rounded-2xl border border-border bg-card p-6">
-                <p className="text-sm font-medium text-foreground/60">Online Revenue</p>
+                <p className="text-sm font-medium text-foreground/60">Online Paid Revenue</p>
                 <p className="mt-2 font-serif text-3xl text-foreground">{formatPHP(onlineRevenue)}</p>
               </div>
               <div className="rounded-2xl border border-border bg-card p-6">
-                <p className="text-sm font-medium text-foreground/60">POS Revenue</p>
+                <p className="text-sm font-medium text-foreground/60">POS Paid Revenue</p>
                 <p className="mt-2 font-serif text-3xl text-foreground">{formatPHP(posRevenue)}</p>
               </div>
               <div className="rounded-2xl border border-border bg-card p-6">
@@ -146,7 +153,7 @@ export default function ReportsPage() {
               <section className="rounded-2xl border border-border bg-card p-6">
                 <h2 className="font-serif text-2xl text-foreground mb-2">Sales Performance</h2>
                 <p className="mb-6 text-sm text-foreground/60">
-                  Seven-day revenue comparison between online sales and point-of-sale activity.
+                  Seven-day paid revenue comparison between online sales and point-of-sale activity.
                 </p>
 
                 <ChartContainer config={salesReportConfig} className="h-[320px] w-full">
@@ -184,7 +191,7 @@ export default function ReportsPage() {
               <section className="rounded-2xl border border-border bg-card p-6">
                 <h2 className="font-serif text-2xl text-foreground mb-2">Payment Share</h2>
                 <p className="mb-6 text-sm text-foreground/60">
-                  Revenue contribution by payment method across the store.
+                  Successful payment revenue by payment method across the store.
                 </p>
 
                 <ChartContainer

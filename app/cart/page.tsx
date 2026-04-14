@@ -8,6 +8,7 @@ import { Header } from '@/components/header'
 import { useAuth } from '@/lib/auth-context'
 import { formatPHP } from '@/lib/currency'
 import { useStore } from '@/lib/store-context'
+import { isPaymentTestCart } from '@/lib/store-engine'
 import { toast } from '@/hooks/use-toast'
 
 const CHECKOUT_SIGN_IN_HREF = '/auth/signin?redirectTo=%2Fcheckout&reason=checkout'
@@ -25,8 +26,9 @@ export default function CartPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
 
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
-  const tax = subtotal * 0.12
-  const shipping = subtotal >= 400 || subtotal === 0 ? 0 : 75
+  const isTestCart = isPaymentTestCart(cart)
+  const tax = isTestCart ? 0 : subtotal * 0.12
+  const shipping = isTestCart ? 0 : subtotal >= 400 || subtotal === 0 ? 0 : 75
   const total = subtotal + tax + shipping
   const checkoutHref = isAuthenticated ? '/checkout' : CHECKOUT_SIGN_IN_HREF
   const hasUnavailableItems = cart.some((item) => {
@@ -36,8 +38,8 @@ export default function CartPage() {
     return !record || record.isArchived || availableStock < item.quantity
   })
 
-  const handleQuantityChange = (productId: string, size: number, nextQuantity: number) => {
-    const result = updateCartQuantity(productId, size, nextQuantity)
+  const handleQuantityChange = async (productId: string, size: number, nextQuantity: number) => {
+    const result = await updateCartQuantity(productId, size, nextQuantity)
 
     if (!result.ok) {
       toast({
@@ -118,7 +120,7 @@ export default function CartPage() {
                       <div className="flex items-center gap-2 border border-border rounded-lg">
                         <button
                           onClick={() =>
-                            handleQuantityChange(item.productId, item.size, item.quantity - 1)
+                            void handleQuantityChange(item.productId, item.size, item.quantity - 1)
                           }
                           className="w-8 h-8 flex items-center justify-center hover:bg-muted"
                           aria-label="Decrease quantity"
@@ -130,7 +132,7 @@ export default function CartPage() {
                         </span>
                         <button
                           onClick={() =>
-                            handleQuantityChange(item.productId, item.size, item.quantity + 1)
+                            void handleQuantityChange(item.productId, item.size, item.quantity + 1)
                           }
                           className="w-8 h-8 flex items-center justify-center hover:bg-muted"
                           aria-label="Increase quantity"
@@ -149,7 +151,7 @@ export default function CartPage() {
                       </div>
 
                       <button
-                        onClick={() => removeFromCart(item.productId, item.size)}
+                        onClick={() => void removeFromCart(item.productId, item.size)}
                         className="p-2 hover:bg-destructive/10 rounded-lg text-destructive transition-colors"
                         aria-label="Remove item"
                       >
@@ -184,7 +186,12 @@ export default function CartPage() {
                   <span>{formatPHP(tax)}</span>
                 </div>
 
-                {shipping === 0 && subtotal > 0 && (
+                {isTestCart && (
+                  <p className="text-xs text-accent">
+                    Payment test item: tax and shipping waived.
+                  </p>
+                )}
+                {!isTestCart && shipping === 0 && subtotal > 0 && (
                   <p className="text-xs text-accent">
                     Shipping is free on orders of {formatPHP(400)} or more.
                   </p>

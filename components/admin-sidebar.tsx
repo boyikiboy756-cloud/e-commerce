@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useAuth, type UserRole } from '@/lib/auth-context'
 import { getRoleLabel } from '@/lib/auth'
+import { useStore } from '@/lib/store-context'
 
 const adminMenuItems: Array<{
   href: string
@@ -28,7 +29,7 @@ const adminMenuItems: Array<{
   { href: '/admin/inventory', label: 'Inventory', icon: Boxes, roles: ['ADMIN', 'STAFF'] },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['ADMIN', 'STAFF'] },
   { href: '/admin/products', label: 'Products', icon: Package, roles: ['ADMIN', 'STAFF'] },
-  { href: '/admin/customers', label: 'Customers', icon: Users, roles: ['ADMIN'] },
+  { href: '/admin/customers', label: 'Accounts', icon: Users, roles: ['ADMIN'] },
   { href: '/admin/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN'] },
   { href: '/admin/promotions', label: 'Promotions', icon: TicketPercent, roles: ['ADMIN'] },
 ]
@@ -37,10 +38,18 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { logout, user } = useAuth()
+  const { isRealtimeRefreshing, lastSyncedAt } = useStore()
   const roleLabel = getRoleLabel(user?.role)
   const visibleItems = adminMenuItems.filter((item) =>
     user ? item.roles.includes(user.role) : false,
   )
+  const syncLabel = isRealtimeRefreshing ? 'Syncing' : 'Live'
+  const syncTimeLabel = lastSyncedAt
+    ? new Date(lastSyncedAt).toLocaleTimeString('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'Waiting'
 
   return (
     <aside className="hidden lg:flex w-72 bg-sidebar border-r border-sidebar-border flex-col shadow-[24px_0_50px_rgba(183,92,127,0.08)]">
@@ -60,6 +69,17 @@ export function AdminSidebar() {
         <p className="mt-3 text-xs uppercase tracking-[0.2em] text-sidebar-foreground/50">
           {roleLabel}
         </p>
+        <div className="mt-4 flex items-center justify-between rounded-2xl border border-sidebar-border bg-white/75 px-3 py-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                isRealtimeRefreshing ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+              }`}
+            />
+            <span className="text-sm font-medium text-sidebar-foreground">Supabase {syncLabel}</span>
+          </div>
+          <span className="text-xs text-sidebar-foreground/55">{syncTimeLabel}</span>
+        </div>
       </div>
 
       {/* Navigation */}

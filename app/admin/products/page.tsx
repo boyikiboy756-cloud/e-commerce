@@ -47,7 +47,7 @@ export default function AdminProductsPage() {
     })
   }, [catalog, searchQuery, selectedCategory])
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: Product) => {
     const shouldDelete = window.confirm(
       `Remove "${product.name}" from the catalog?`,
     )
@@ -56,7 +56,7 @@ export default function AdminProductsPage() {
       return
     }
 
-    const result = removeCatalogProduct(product.id)
+    const result = await removeCatalogProduct(product.id)
 
     toast({
       title: result.ok ? 'Product removed' : 'Unable to remove product',

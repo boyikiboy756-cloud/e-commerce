@@ -12,10 +12,17 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { getAvailableStock, getAvailabilityStatus, getInventoryRecord } = useStore()
+  const {
+    getAvailableStock,
+    getAvailabilityStatus,
+    getInventoryRecord,
+    isWishlisted,
+    toggleWishlist,
+  } = useStore()
   const availableStock = getAvailableStock(product.id)
   const availability = getAvailabilityStatus(product.id)
   const isArchived = getInventoryRecord(product.id)?.isArchived ?? false
+  const wishlisted = isWishlisted(product.id)
   const displayAvailability = isArchived ? 'Archived' : availability
   const availabilityTone =
     isArchived
@@ -53,14 +60,17 @@ export function ProductCard({ product }: ProductCardProps) {
             <button
               type="button"
               suppressHydrationWarning
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault()
                 e.stopPropagation()
+                await toggleWishlist(product.id)
               }}
               className="rounded-full bg-white/90 p-2 backdrop-blur-sm hover:bg-white transition-colors"
               aria-label="Add to wishlist"
             >
-              <Heart className="w-4 h-4 text-foreground" />
+              <Heart
+                className={`w-4 h-4 ${wishlisted ? 'fill-foreground text-foreground' : 'text-foreground'}`}
+              />
             </button>
           </div>
         </div>

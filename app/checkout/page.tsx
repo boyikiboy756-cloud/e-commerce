@@ -1,27 +1,53 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Check, ChevronLeft } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Check, ChevronLeft, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { Spinner } from '@/components/ui/spinner'
 import { formatPHP } from '@/lib/currency'
 import { ONLINE_PAYMENT_METHODS, useStore } from '@/lib/store-context'
+import { isPaymentTestCart } from '@/lib/store-engine'
 import { useAuth } from '@/lib/auth-context'
 import { toast } from '@/hooks/use-toast'
 
 const STEPS = ['Shipping', 'Payment', 'Review']
 const CHECKOUT_SIGN_IN_HREF = '/auth/signin?redirectTo=%2Fcheckout&reason=checkout'
+const PAYMONGO_PENDING_CHECKOUT_KEY = 'paymongo-pending-checkout'
+const PAYMONGO_PAYMENT_METHOD_VALUE = 'PayMongo'
+const PAYMONGO_PAYMENT_METHOD_LABEL = 'PayMongo Checkout'
 
-export default function CheckoutPage() {
+interface PendingPaymongoCheckout {
+  checkoutSessionId: string
+  shippingAddress: string
+  customerName: string
+  customerEmail: string
+  reference: string
+  notes: string
+  paymentMethodLabel?: string
+}
+
+function isPaymongoCheckoutMethod(method: string) {
+  return method === PAYMONGO_PAYMENT_METHOD_VALUE
+}
+
+function getCheckoutPaymentLabel(method: string) {
+  return isPaymongoCheckoutMethod(method) ? PAYMONGO_PAYMENT_METHOD_LABEL : method
+}
+
+function CheckoutContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { cart, getAvailableStock, getInventoryRecord, getProductById, placeOnlineOrder } = useStore()
   const { user, isAuthenticated, canAccessBackoffice, isLoading: authLoading } = useAuth()
   const [step, setStep] = useState(0)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false)
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false)
+  const paymentVerificationStarted = useRef(false)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -76,9 +102,11 @@ export default function CheckoutPage() {
   )
 
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
-  const shipping = subtotal >= 400 || subtotal === 0 ? 0 : 75
-  const tax = subtotal * 0.12
+  const isTestCart = isPaymentTestCart(cart)
+  const shipping = isTestCart ? 0 : subtotal >= 400 || subtotal === 0 ? 0 : 75
+  const tax = isTestCart ? 0 : subtotal * 0.12
   const total = subtotal + shipping + tax
+  const paymentFlow = searchParams.get('paymongo')
   const hasUnavailableItems = cart.some((item) => {
     const record = getInventoryRecord(item.productId)
     const availableStock = getAvailableStock(item.productId)
@@ -99,7 +127,136 @@ export default function CheckoutPage() {
     }))
   }
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const buildShippingAddress = () =>
+    `${formData.address}, ${formData.city}, ${formData.state} ${formData.zip}, ${formData.country}`
+
+  const buildFullName = () => `${formData.firstName} ${formData.lastName}`.trim()
+
+  const storePendingPaymongoCheckout = (checkout: PendingPaymongoCheckout) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.sessionStorage.setItem(PAYMONGO_PENDING_CHECKOUT_KEY, JSON.stringify(checkout))
+  }
+
+  const readPendingPaymongoCheckout = () => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    const rawValue = window.sessionStorage.getItem(PAYMONGO_PENDING_CHECKOUT_KEY)
+
+    if (!rawValue) {
+      return null
+    }
+
+    try {
+      return JSON.parse(rawValue) as PendingPaymongoCheckout
+    } catch {
+      return null
+    }
+  }
+
+  const clearPendingPaymongoCheckout = () => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.sessionStorage.removeItem(PAYMONGO_PENDING_CHECKOUT_KEY)
+  }
+
+  const finalizeOrder = async (pendingCheckout: PendingPaymongoCheckout) => {
+    const result = await placeOnlineOrder({
+      customerEmail: pendingCheckout.customerEmail,
+      customerName: pendingCheckout.customerName,
+      notes: [
+        pendingCheckout.reference,
+        pendingCheckout.notes,
+        `PayMongo session: ${pendingCheckout.checkoutSessionId}`,
+        pendingCheckout.paymentMethodLabel ? `PayMongo channel: ${pendingCheckout.paymentMethodLabel}` : '',
+      ]
+        .filter(Boolean)
+        .join(' | '),
+      paymentMethod: PAYMONGO_PAYMENT_METHOD_VALUE,
+      shippingAddress: pendingCheckout.shippingAddress,
+    })
+
+    if (!result.ok || !result.data) {
+      throw new Error(result.message)
+    }
+
+    setOrderNumber(result.data.id)
+    setOrderPlaced(true)
+    clearPendingPaymongoCheckout()
+    router.replace('/checkout')
+    toast({
+      title: 'Payment confirmed',
+      description: `${result.data.id} has been recorded as a paid ${pendingCheckout.paymentMethodLabel ?? 'PayMongo'} order.`,
+    })
+  }
+
+  useEffect(() => {
+    if (
+      authLoading ||
+      !isAuthenticated ||
+      !user ||
+      user.role !== 'USER' ||
+      paymentFlow !== 'success' ||
+      paymentVerificationStarted.current
+    ) {
+      return
+    }
+
+    const pendingCheckout = readPendingPaymongoCheckout()
+
+    if (!pendingCheckout?.checkoutSessionId) {
+      toast({
+        title: 'Missing payment session',
+        description: 'We could not find your pending PayMongo checkout session. Please try checking out again.',
+        variant: 'destructive',
+      })
+      router.replace('/checkout')
+      return
+    }
+
+    paymentVerificationStarted.current = true
+    setIsVerifyingPayment(true)
+
+    fetch(`/api/paymongo/checkout/${pendingCheckout.checkoutSessionId}`, {
+      method: 'GET',
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? 'Unable to verify the PayMongo payment.')
+        }
+
+        if (!payload.paid) {
+          throw new Error('Your PayMongo payment is still pending or was not completed.')
+        }
+
+        await finalizeOrder(pendingCheckout)
+      })
+      .catch((error) => {
+        paymentVerificationStarted.current = false
+        toast({
+          title: 'Payment verification failed',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'We could not confirm your PayMongo payment yet.',
+          variant: 'destructive',
+        })
+      })
+      .finally(() => {
+        setIsVerifyingPayment(false)
+      })
+  }, [authLoading, isAuthenticated, paymentFlow, placeOnlineOrder, router, user])
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
 
     if (!user) {
@@ -117,9 +274,96 @@ export default function CheckoutPage() {
       return
     }
 
-    const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} ${formData.zip}, ${formData.country}`
-    const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-    const result = placeOnlineOrder({
+    const shippingAddress = buildShippingAddress()
+    const fullName = buildFullName()
+
+    if (isPaymongoCheckoutMethod(formData.paymentMethod)) {
+      try {
+        setIsSubmittingPayment(true)
+
+        const response = await fetch('/api/paymongo/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerEmail: user.email,
+            customerName: fullName,
+            reference: formData.reference,
+            shippingAddress,
+            lineItems: orderItems
+              .filter((item) => item.product)
+              .map((item) => ({
+                name: `${item.product?.name ?? 'Product'} ${item.size}ml`,
+                amount: Math.round(item.unitPrice * 100),
+                quantity: item.quantity,
+                currency: 'PHP',
+                description: item.product?.description,
+                images:
+                  item.product?.images?.[0] && item.product.images[0].startsWith('http')
+                    ? [item.product.images[0]]
+                    : undefined,
+              })),
+          }),
+        })
+
+        const payload = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? 'Unable to start the PayMongo checkout.')
+        }
+
+        if (!payload.checkoutUrl) {
+          throw new Error('PayMongo did not return a checkout URL for this session.')
+        }
+
+        const paymentMethodLabel =
+          typeof payload.paymentMethodLabel === 'string' && payload.paymentMethodLabel.trim().length > 0
+            ? payload.paymentMethodLabel
+            : 'PayMongo'
+
+        if (payload.requiresManualPaymentConfirmation) {
+          const shouldOpenHostedCheckout = window.confirm(
+            `${paymentMethodLabel} is currently running in PayMongo test mode. QR Ph test checkouts can still generate scannable QR codes. Continue only if you want to inspect the hosted checkout and you will not complete the payment.`,
+          )
+
+          if (!shouldOpenHostedCheckout) {
+            toast({
+              title: 'PayMongo session created',
+              description: `A ${paymentMethodLabel} session is ready, but the hosted checkout was not opened.`,
+            })
+            return
+          }
+        }
+
+        storePendingPaymongoCheckout({
+          checkoutSessionId: payload.checkoutSessionId,
+          customerEmail: user.email,
+          customerName: fullName,
+          notes: formData.notes,
+          paymentMethodLabel,
+          reference: formData.reference,
+          shippingAddress,
+        })
+
+        window.location.href = payload.checkoutUrl
+        return
+      } catch (error) {
+        toast({
+          title: 'PayMongo checkout failed',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'We could not open the PayMongo checkout.',
+          variant: 'destructive',
+        })
+        return
+      } finally {
+        setIsSubmittingPayment(false)
+      }
+    }
+
+    const result = await placeOnlineOrder({
       customerEmail: user.email,
       customerName: fullName,
       notes: [formData.reference, formData.notes].filter(Boolean).join(' | '),
@@ -144,14 +388,20 @@ export default function CheckoutPage() {
     })
   }
 
-  if (authLoading || !isAuthenticated || !user || user.role !== 'USER') {
+  if (authLoading || !isAuthenticated || !user || user.role !== 'USER' || isVerifyingPayment) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
           <div className="flex items-center gap-3 text-foreground/70">
             <Spinner className="h-5 w-5" />
-            <p>{authLoading ? 'Checking your account...' : 'Redirecting to sign in...'}</p>
+            <p>
+              {isVerifyingPayment
+                ? 'Verifying your PayMongo payment...'
+                : authLoading
+                  ? 'Checking your account...'
+                  : 'Redirecting to sign in...'}
+            </p>
           </div>
         </div>
       </div>
@@ -365,11 +615,11 @@ export default function CheckoutPage() {
                         }`}
                       >
                         <div>
-                          <p className="font-medium text-foreground">{method}</p>
+                          <p className="font-medium text-foreground">{getCheckoutPaymentLabel(method)}</p>
                           <p className="text-sm text-foreground/60">
                             {method === 'Cash on Delivery'
                               ? 'Payment is collected when the order arrives.'
-                              : 'Payment is recorded instantly for analytics and reporting.'}
+                              : 'You will continue to PayMongo using the enabled payment channel on your account. QR Ph is preferred when available.'}
                           </p>
                         </div>
                         <input
@@ -387,11 +637,20 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     name="reference"
-                    placeholder="Payment reference / wallet number (optional)"
+                    placeholder="Reference note for your order (optional)"
                     value={formData.reference}
                     onChange={handleChange}
                     className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-accent"
                   />
+
+                  {isPaymongoCheckoutMethod(formData.paymentMethod) && (
+                    <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 text-sm text-foreground/75">
+                      You will be redirected to the secure PayMongo-hosted checkout after you confirm the order.
+                      The checkout uses your account's enabled payment channels and prefers QR Ph when it is available.
+                      If the account is still using test keys and only QR Ph is enabled, the app will ask for
+                      confirmation before opening the hosted checkout.
+                    </div>
+                  )}
 
                   <textarea
                     name="notes"
@@ -423,7 +682,13 @@ export default function CheckoutPage() {
 
                     <div className="border-t border-border pt-4">
                       <p className="text-sm text-foreground/60 mb-2">Payment Method</p>
-                      <p className="text-foreground font-medium">{formData.paymentMethod}</p>
+                      <p className="text-foreground font-medium">{getCheckoutPaymentLabel(formData.paymentMethod)}</p>
+                      {isPaymongoCheckoutMethod(formData.paymentMethod) && (
+                        <p className="mt-2 text-sm text-foreground/60">
+                          PayMongo hosted checkout will use the enabled payment channel on your account. QR Ph is
+                          preferred when available.
+                        </p>
+                      )}
                     </div>
 
                     <div className="border-t border-border pt-4">
@@ -463,9 +728,25 @@ export default function CheckoutPage() {
                 <Button
                   type="submit"
                   className="ml-auto bg-accent hover:bg-accent/90 text-accent-foreground"
-                  disabled={hasUnavailableItems}
+                  disabled={hasUnavailableItems || isSubmittingPayment}
                 >
-                  {step === STEPS.length - 1 ? 'Place Order' : 'Continue'}
+                  {step === STEPS.length - 1 ? (
+                    isSubmittingPayment ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Spinner className="h-4 w-4" />
+                        Opening PayMongo...
+                      </span>
+                    ) : isPaymongoCheckoutMethod(formData.paymentMethod) ? (
+                      <span className="inline-flex items-center gap-2">
+                        Open PayMongo Checkout
+                        <ExternalLink className="h-4 w-4" />
+                      </span>
+                    ) : (
+                      'Place Order'
+                    )
+                  ) : (
+                    'Continue'
+                  )}
                 </Button>
               </div>
 
@@ -512,6 +793,11 @@ export default function CheckoutPage() {
                   <span>Tax</span>
                   <span>{formatPHP(tax)}</span>
                 </div>
+                {isTestCart && (
+                  <p className="text-xs text-accent">
+                    Payment test item: tax and shipping waived.
+                  </p>
+                )}
               </div>
 
               <div className="border-t border-border pt-4">
@@ -531,5 +817,25 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background">
+          <Header />
+          <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+            <div className="flex items-center gap-3 text-foreground/70">
+              <Spinner className="h-5 w-5" />
+              <p>Loading checkout...</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   )
 }

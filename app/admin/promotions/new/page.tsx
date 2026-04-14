@@ -5,10 +5,10 @@ import { AdminPromotionEditor } from '@/components/admin-promotion-editor'
 import { ProtectedRoute } from '@/components/protected-route'
 import { toast } from '@/hooks/use-toast'
 import {
+  createStoredPromotion,
   createPromotionFromForm,
-  getStoredPromotions,
   initialPromotionFormValues,
-  saveStoredPromotions,
+  listPromotions,
   type PromotionFormValues,
 } from '@/lib/admin-promotions'
 
@@ -16,28 +16,36 @@ export default function NewPromotionPage() {
   const router = useRouter()
 
   const handleSubmit = async (values: PromotionFormValues) => {
-    const nextPromotion = createPromotionFromForm(values)
-    const currentPromotions = getStoredPromotions()
-    const duplicateCode = currentPromotions.some(
-      (promotion) =>
-        promotion.code.toLowerCase() === nextPromotion.code.toLowerCase(),
-    )
+    try {
+      const nextPromotion = createPromotionFromForm(values)
+      const currentPromotions = await listPromotions()
+      const duplicateCode = currentPromotions.some(
+        (promotion) =>
+          promotion.code.toLowerCase() === nextPromotion.code.toLowerCase(),
+      )
 
-    if (duplicateCode) {
+      if (duplicateCode) {
+        toast({
+          title: 'Promotion code already exists',
+          description: 'Choose a different code before saving this promotion.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      await createStoredPromotion(nextPromotion)
       toast({
-        title: 'Promotion code already exists',
-        description: 'Choose a different code before saving this promotion.',
+        title: 'Promotion created',
+        description: `${nextPromotion.code} is now available in your promotions list.`,
+      })
+      router.push('/admin/promotions')
+    } catch (error) {
+      toast({
+        title: 'Unable to create promotion',
+        description: error instanceof Error ? error.message : 'Try again in a moment.',
         variant: 'destructive',
       })
-      return
     }
-
-    saveStoredPromotions([nextPromotion, ...currentPromotions])
-    toast({
-      title: 'Promotion created',
-      description: `${nextPromotion.code} is now available in your promotions list.`,
-    })
-    router.push('/admin/promotions')
   }
 
   return (

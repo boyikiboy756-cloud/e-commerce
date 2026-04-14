@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/components/protected-route'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth-context'
 import { formatPHP } from '@/lib/currency'
+import { isPaymentTestCart } from '@/lib/store-engine'
 import { POS_PAYMENT_METHODS, type CartItem, useStore } from '@/lib/store-context'
 import { toast } from '@/hooks/use-toast'
 
@@ -52,7 +53,8 @@ export default function PosPage() {
   }, [activeCatalog, selectedProduct, selectedProductId, selectedSize])
 
   const subtotal = saleItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
-  const tax = subtotal * 0.12
+  const isTestCart = isPaymentTestCart(saleItems)
+  const tax = isTestCart ? 0 : subtotal * 0.12
   const total = subtotal + tax
 
   const addSaleItem = () => {
@@ -109,8 +111,8 @@ export default function PosPage() {
     )
   }
 
-  const handleSubmit = () => {
-    const result = createPosSale({
+  const handleSubmit = async () => {
+    const result = await createPosSale({
       cashierName: user?.name || 'Store Staff',
       customerName,
       items: saleItems,

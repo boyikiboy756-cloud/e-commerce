@@ -207,13 +207,13 @@ export default function InventoryPage() {
     }))
   }
 
-  const handleSave = (productId: string) => {
+  const handleSave = async (productId: string) => {
     const draft = drafts[productId]
     if (!draft) {
       return
     }
 
-    const result = updateInventory({
+    const result = await updateInventory({
       productId,
       stock: Number(draft.stock),
       reorderPoint: Number(draft.reorderPoint),
@@ -239,7 +239,7 @@ export default function InventoryPage() {
     setIsRestockDialogOpen(true)
   }
 
-  const handleRestockSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleRestockSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const quantity = Number(restockDraft.quantity)
@@ -262,7 +262,7 @@ export default function InventoryPage() {
       return
     }
 
-    const result = adjustInventory({
+    const result = await adjustInventory({
       productId: restockDraft.productId,
       delta: quantity,
       actor: user?.name || 'Store team',
@@ -282,12 +282,12 @@ export default function InventoryPage() {
     }
   }
 
-  const handleArchive = () => {
+  const handleArchive = async () => {
     if (!archiveTarget) {
       return
     }
 
-    const result = archiveInventoryItem({
+    const result = await archiveInventoryItem({
       productId: archiveTarget.productId,
       actor: user?.name || 'Store team',
       note: 'Removed from active inventory operations.',
@@ -304,8 +304,8 @@ export default function InventoryPage() {
     }
   }
 
-  const handleRestore = (productId: string) => {
-    const result = restoreInventoryItem({
+  const handleRestore = async (productId: string) => {
+    const result = await restoreInventoryItem({
       productId,
       actor: user?.name || 'Store team',
     })
